@@ -52,9 +52,9 @@ export default function AIPage() {
               <p className="mb-1 font-semibold text-sm">
                 {message.role === "user" ? "You" : "AI Assistant"}
               </p>
-              {message.parts?.map((part, index) => {
+              {message.parts?.map((part) => {
                 if (part.type === "text") {
-                  return <Response key={index}>{part.text}</Response>;
+                  return <Response key={part.text}>{part.text}</Response>;
                 }
                 return null;
               })}

@@ -1079,14 +1079,14 @@ interface SpeechRecognitionErrorEvent extends Event {
 }
 
 declare global {
-  type Window = {
+  interface Window {
     SpeechRecognition: {
       new (): SpeechRecognition;
     };
     webkitSpeechRecognition: {
       new (): SpeechRecognition;
     };
-  };
+  }
 }
 
 export type PromptInputSpeechButtonProps = ComponentProps<
