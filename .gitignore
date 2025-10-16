@@ -49,15 +49,29 @@ coverage
 tmp
 temp
 
-# START Ruler Generated Files
-/.gemini/settings.json
-/.gemini/settings.json.bak
-/.mcp.json
-/.mcp.json.bak
-/AGENTS.md
-/AGENTS.md.bak
-/CLAUDE.md
-/CLAUDE.md.bak
-/WARP.md
-/WARP.md.bak
-# END Ruler Generated Files
+# AI and Spec Documents (Local Only)
+.gemini/
+.mcp.json
+.mcp.json.bak
+
+# Spec and Documentation (Local Development)
+MEMORA_SPEC.md
+TECH_STACK_UPDATES.md
+IMPLEMENTATION_PLAN.md
+TASKS.md
+AI_ASSISTANT_GUIDE.md
+CLAUDE_CODE_PROMPTS.md
+CLAUDE.md
+CLAUDE.md.bak
+GOOGLE_STITCH_PROMPTS.md
+GEMINI.md
+WARP.md
+WARP.md.bak
+CI_CD_SETUP.md
+CI_CD_STATUS.md
+CI_FIXES_COMPLETE.md
+FIXING_LINT_ERRORS.md
+GITHUB_SETUP_COMPLETE.md
+
+# Images
+images/
