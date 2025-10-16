@@ -22,7 +22,13 @@ PARTIALLY_STAGED=$(git diff --name-only)
 git stash push --quiet --keep-index --message "pre-commit-stash" || true
 STASHED=$?
 
+# Run biome to auto-fix linting and formatting issues
+echo "🔍 Running Biome linter and auto-fixer..."
+bun x biome check . --write --unsafe 2>/dev/null || true
+BIOME_EXIT_CODE=$?
+
 # Run formatter on the staged files
+echo "✨ Running Ultracite formatter..."
 bun x ultracite fix
 FORMAT_EXIT_CODE=$?
 
@@ -64,7 +70,8 @@ fi
 # Check if staged files actually changed
 NEW_STAGED_HASH=$(git diff --cached | sha256sum | cut -d' ' -f1)
 if [ "$STAGED_HASH" != "$NEW_STAGED_HASH" ]; then
-  echo "✨ Files formatted by Ultracite"
+  echo "✅ Files auto-fixed by Biome and Ultracite!"
 fi
 
+# Exit with format exit code (priority over biome since it's the actual formatter)
 exit $FORMAT_EXIT_CODE
