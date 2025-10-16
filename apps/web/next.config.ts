@@ -1,8 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-	typedRoutes: true,
-	transpilePackages: ["shiki"],
+  typedRoutes: true,
+  transpilePackages: ["shiki"],
 };
 
 export default nextConfig;
