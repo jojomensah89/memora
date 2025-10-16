@@ -1,10 +1,17 @@
 #!/bin/sh
 . "$(dirname "$0")/_/husky.sh"
 
+echo "🔍 Running Biome linter check..."
+bun x biome check . || {
+  echo "❌ Lint errors found! Fix them and try again."
+  echo "💡 Tip: Run 'bun x biome check . --write --unsafe' to auto-fix"
+  exit 1
+}
+
 echo "🔍 Running type check..."
 bun run check-types || exit 1
 
 echo "🧪 Running tests..."
-bun test || exit 1
+bun run test || exit 1
 
-echo "✅ All checks passed!"
+echo "✅ All checks passed! Ready to push."
