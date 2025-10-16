@@ -1,0 +1,10 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+echo "🔍 Running type check..."
+bun run check-types || exit 1
+
+echo "🧪 Running tests..."
+bun test || exit 1
+
+echo "✅ All checks passed!"

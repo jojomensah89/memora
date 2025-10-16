@@ -23,11 +23,13 @@
     }
   },
   "scripts": {
+    "prepare": "husky",
     "check": "biome check --write .",
     "ruler:apply": "bunx @intellectronica/ruler@latest apply --local-only",
     "dev": "turbo dev",
     "build": "turbo build",
     "check-types": "turbo check-types",
+    "test": "echo \"No tests yet\" && exit 0",
     "dev:native": "turbo -F native dev",
     "dev:web": "turbo -F web dev",
     "dev:server": "turbo -F server dev",
