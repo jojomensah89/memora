@@ -2,7 +2,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import Header from "@/components/layout/Header";
-import RightSidebar from "@/components/layout/RightSidebar";
+import RightSidebar from "@/components/layout/right-sidebar";
 import { authClient } from "@/lib/auth-client";
 
 type ChatLayoutProps = {
