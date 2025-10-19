@@ -115,7 +115,7 @@ export function LoginForm({
                       <FieldLabel htmlFor={field.name}>Password</FieldLabel>
                       <Link
                         className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
-                        href="/forgot-password"
+                        href="/"
                       >
                         Forgot your password?
                       </Link>
@@ -163,7 +163,7 @@ export function LoginForm({
                     </Button>
                     <Button
                       className="w-full"
-                      onClick={() => router.push("/otp-login")}
+                      onClick={() => router.push("/")}
                       type="button"
                       variant="outline"
                     >

@@ -45,7 +45,7 @@ export function SignupForm({
           callbackURL: "/dashboard",
         },
         {
-          onSuccess: async () => {
+          onSuccess: () => {
             // Use provided organization name or default to "Name's Organization"
             const orgName = value.organizationName?.trim()
               ? value.organizationName.trim()
@@ -66,22 +66,6 @@ export function SignupForm({
               return;
             }
 
-            try {
-              await authClient.organization.create({
-                name: orgName,
-                slug,
-                metadata: {
-                  createdBySignUp: true,
-                  customName: !!value.organizationName?.trim(),
-                },
-              });
-              toast.success("Account and organization created successfully!");
-            } catch (_error) {
-              // Account was created successfully, just organization creation failed
-              toast.success(
-                "Account created successfully! Your organization will be created automatically."
-              );
-            }
             router.push("/success");
           },
           onError: (error) => {

@@ -3,7 +3,7 @@ import { create } from "zustand";
 type UIState = {
   leftSidebarOpen: boolean;
   rightSidebarOpen: boolean;
-  activeChatId: string | null;
+  activeChatId: number | null;
   selectedContext: string[];
   sidebarWidths: { left: number; right: number };
   isMobile: boolean;
@@ -12,7 +12,7 @@ type UIState = {
 type UIActions = {
   setLeftSidebarOpen: (open: boolean) => void;
   setRightSidebarOpen: (open: boolean) => void;
-  setActiveChatId: (chatId: string | null) => void;
+  setActiveChatId: (chatId: number | null) => void;
   setSelectedContext: (context: string[]) => void;
   setSidebarWidths: (widths: { left: number; right: number }) => void;
   setIsMobile: (isMobile: boolean) => void;

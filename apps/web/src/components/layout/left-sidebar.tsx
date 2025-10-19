@@ -18,7 +18,7 @@ import { useUIStore } from "@/stores/useUIStore";
 import { NavUser } from "../nav-user";
 
 type Chat = {
-  id: string;
+  id: number;
   title: string;
   lastMessage: string;
   timestamp: string;
@@ -41,7 +41,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ chats }) => {
     router.push("/chat");
   };
 
-  const handleChatSelect = (chatId: string) => {
+  const handleChatSelect = (chatId: number) => {
     setActiveChatId(chatId);
     // Navigate to specific chat
     router.push(`/chat/${chatId}`);

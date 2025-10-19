@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import ChatWelcome from "@/components/chat/ChatWelcome";
+import ChatWelcome from "@/components/chat/chat-welcome";
 import { authClient } from "@/lib/auth-client";
 
 export const metadata: Metadata = {
