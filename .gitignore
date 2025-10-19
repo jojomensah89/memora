@@ -81,3 +81,4 @@ packages/db/prisma/migrations
 .factory
 DEBUG_SIGNUP.md
 gha-creds-*.json
+lint-errors.md
