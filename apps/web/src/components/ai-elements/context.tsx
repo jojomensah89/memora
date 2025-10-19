@@ -1,8 +1,8 @@
 "use client";
 
+import { getTokenCosts } from "@tokenlens/helpers";
 import type { LanguageModelUsage } from "ai";
 import { type ComponentProps, createContext, useContext } from "react";
-import { estimateCost, type ModelId } from "tokenlens";
 import { Button } from "@/components/ui/button";
 import {
   HoverCard,
@@ -22,7 +22,7 @@ type ContextSchema = {
   usedTokens: number;
   maxTokens: number;
   usage?: LanguageModelUsage;
-  modelId?: ModelId;
+  modelId?: string;
 };
 
 const ContextContext = createContext<ContextSchema | null>(null);
@@ -195,7 +195,7 @@ export const ContextContentFooter = ({
 }: ContextContentFooter) => {
   const { modelId, usage } = useContextValue();
   const costUSD = modelId
-    ? estimateCost({
+    ? getTokenCosts({
         modelId,
         usage: {
           input: usage?.inputTokens ?? 0,
@@ -245,7 +245,7 @@ export const ContextInputUsage = ({
   }
 
   const inputCost = modelId
-    ? estimateCost({
+    ? getTokenCosts({
         modelId,
         usage: { input: inputTokens, output: 0 },
       }).totalUSD
@@ -285,7 +285,7 @@ export const ContextOutputUsage = ({
   }
 
   const outputCost = modelId
-    ? estimateCost({
+    ? getTokenCosts({
         modelId,
         usage: { input: 0, output: outputTokens },
       }).totalUSD
@@ -325,7 +325,7 @@ export const ContextReasoningUsage = ({
   }
 
   const reasoningCost = modelId
-    ? estimateCost({
+    ? getTokenCosts({
         modelId,
         usage: { reasoningTokens },
       }).totalUSD
@@ -365,7 +365,7 @@ export const ContextCacheUsage = ({
   }
 
   const cacheCost = modelId
-    ? estimateCost({
+    ? getTokenCosts({
         modelId,
         usage: { cacheReads: cacheTokens, input: 0, output: 0 },
       }).totalUSD

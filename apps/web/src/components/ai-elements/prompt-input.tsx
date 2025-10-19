@@ -2,12 +2,12 @@
 
 import type { ChatStatus, FileUIPart } from "ai";
 import {
+  ArrowUpIcon,
   ImageIcon,
   Loader2Icon,
   MicIcon,
   PaperclipIcon,
   PlusIcon,
-  ArrowUpIcon,
   SquareIcon,
   XIcon,
 } from "lucide-react";
@@ -1079,14 +1079,14 @@ interface SpeechRecognitionErrorEvent extends Event {
 }
 
 declare global {
-  interface Window {
+  type Window = {
     SpeechRecognition: {
       new (): SpeechRecognition;
     };
     webkitSpeechRecognition: {
       new (): SpeechRecognition;
     };
-  }
+  };
 }
 
 export type PromptInputSpeechButtonProps = ComponentProps<

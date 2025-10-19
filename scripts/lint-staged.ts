@@ -53,16 +53,16 @@ const runCommand = (command: string, args: string[]) => {
 
 if (lintTargets.length > 0) {
   // Biome: pass files directly as arguments (no --files flag)
-  runCommand("bun", [
-    "x",
-    "@biomejs/biome",
-    "check",
-    "--write",
-    "--unsafe",
-    "--no-errors-on-unmatched",
-    "--files-ignore-unknown=true",
-    ...lintTargets,
-  ]);
+  // runCommand("bun", [
+  //   "x",
+  //   "@biomejs/biome",
+  //   "check",
+  //   "--write",
+  //   "--unsafe",
+  //   "--no-errors-on-unmatched",
+  //   "--files-ignore-unknown=true",
+  //   ...lintTargets,
+  // ]);
 
   // Ultracite: pass files directly as arguments (no --files flag)
   runCommand("bun", ["x", "ultracite", "fix", ...lintTargets]);

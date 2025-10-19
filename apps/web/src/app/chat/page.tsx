@@ -3,7 +3,6 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import ChatWelcome from "@/components/chat/ChatWelcome";
 import { authClient } from "@/lib/auth-client";
- 
 
 export const metadata: Metadata = {
   title: "Chat - Memora",

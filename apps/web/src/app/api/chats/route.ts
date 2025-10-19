@@ -1,6 +1,17 @@
 import { headers } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
 
+const SESSION_ERROR_MESSAGE = "Unauthorized";
+const CHAT_ID_PREFIX = "chat";
+const RANDOM_STRING_RADIX = 36;
+const RANDOM_STRING_START = 2;
+const RANDOM_STRING_LENGTH = 9;
+const MILLISECONDS_IN_SECOND = 1000;
+const SECONDS_IN_MINUTE = 60;
+const MINUTES_IN_HOUR = 60;
+const HOURS_AGO_PROJECT_DISCUSSION = 2;
+const HOURS_AGO_CODE_REVIEW = 5;
+
 export async function POST(request: NextRequest) {
   try {
     // Use Better Auth server-side validation through the existing auth endpoint
@@ -15,19 +26,19 @@ export async function POST(request: NextRequest) {
     });
 
     if (!response.ok) {
-      console.error(
-        "Session check failed:",
-        response.status,
-        response.statusText
+      return NextResponse.json(
+        { error: SESSION_ERROR_MESSAGE },
+        { status: 401 }
       );
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const session = await response.json();
 
     if (!session?.user) {
-      console.error("No user session found");
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { error: SESSION_ERROR_MESSAGE },
+        { status: 401 }
+      );
     }
 
     const body = await request.json();
@@ -42,13 +53,10 @@ export async function POST(request: NextRequest) {
 
     // For now, generate a simple chat ID
     // In a real implementation, this would create a chat in the database
-    const chatId = `chat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-    console.log("Created chat:", {
-      chatId,
-      user: session.user.email,
-      initialMessage,
-    });
+    const randomComponent = Math.random()
+      .toString(RANDOM_STRING_RADIX)
+      .slice(RANDOM_STRING_START, RANDOM_STRING_START + RANDOM_STRING_LENGTH);
+    const chatId = `${CHAT_ID_PREFIX}_${Date.now()}_${randomComponent}`;
 
     return NextResponse.json({
       success: true,
@@ -56,7 +64,6 @@ export async function POST(request: NextRequest) {
       message: "Chat created successfully",
     });
   } catch (error) {
-    console.error("Error creating chat:", error);
     return NextResponse.json(
       {
         error: "Failed to create chat",
@@ -68,7 +75,7 @@ export async function POST(request: NextRequest) {
 }
 
 // Add GET endpoint for fetching chat history
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     // Check authentication
     const sessionUrl = `${process.env.NEXT_PUBLIC_SERVER_URL}/api/auth/get-session`;
@@ -82,13 +89,19 @@ export async function GET(request: NextRequest) {
     });
 
     if (!response.ok) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { error: SESSION_ERROR_MESSAGE },
+        { status: 401 }
+      );
     }
 
     const session = await response.json();
 
     if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { error: SESSION_ERROR_MESSAGE },
+        { status: 401 }
+      );
     }
 
     // Return mock chat history for now
@@ -97,14 +110,26 @@ export async function GET(request: NextRequest) {
         id: "1",
         title: "Project Discussion",
         lastMessage: "Let's review the architecture",
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
+        timestamp: new Date(
+          Date.now() -
+            MILLISECONDS_IN_SECOND *
+              SECONDS_IN_MINUTE *
+              MINUTES_IN_HOUR *
+              HOURS_AGO_PROJECT_DISCUSSION
+        ).toISOString(),
         unread: 2,
       },
       {
         id: "2",
         title: "Code Review",
         lastMessage: "The pull request looks good",
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
+        timestamp: new Date(
+          Date.now() -
+            MILLISECONDS_IN_SECOND *
+              SECONDS_IN_MINUTE *
+              MINUTES_IN_HOUR *
+              HOURS_AGO_CODE_REVIEW
+        ).toISOString(),
         unread: 0,
       },
     ];
@@ -113,8 +138,7 @@ export async function GET(request: NextRequest) {
       success: true,
       chats: mockChats,
     });
-  } catch (error) {
-    console.error("Error fetching chat history:", error);
+  } catch (_error) {
     return NextResponse.json(
       { error: "Failed to fetch chat history" },
       { status: 500 }

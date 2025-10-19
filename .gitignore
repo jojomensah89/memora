@@ -79,3 +79,5 @@ images/
 packages/db/prisma/generated
 packages/db/prisma/migrations
 .factory
+DEBUG_SIGNUP.md
+gha-creds-*.json
