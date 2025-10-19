@@ -52,14 +52,25 @@ export function SignupForm({
                 ? value.organizationName.trim()
                 : `${value.name}'s Organization`;
 
+            const slug = orgName
+              .toLowerCase()
+              .replace(/[^a-z0-9\s-]/g, "")
+              .replace(/\s+/g, "-")
+              .replace(/-+/g, "-")
+              .replace(/^-+|-+$/g, "")
+              .trim();
+
+            if (!slug) {
+              toast.error(
+                "Invalid organization name. Please use alphanumeric characters."
+                  email: z.string().email("Invalid email address"),
+              return;
+            }
+
             try {
               await authClient.organization.create({
                 name: orgName,
-                slug: orgName
-                  .toLowerCase()
-                  .replace(/[^a-z0-9\s-]/g, "")
-                  .replace(/\s+/g, "-")
-                  .trim(),
+                slug,
                 metadata: {
                   createdBySignUp: true,
                   customName: !!(
@@ -72,7 +83,7 @@ export function SignupForm({
               // Account was created successfully, just organization creation failed
               toast.success(
                 "Account created successfully! Your organization will be created automatically."
-              );
+                  email: z.string().email("Invalid email address"),
             }
             router.push("/success");
           },

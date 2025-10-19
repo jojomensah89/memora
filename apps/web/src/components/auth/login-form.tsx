@@ -54,11 +54,11 @@ export function LoginForm({
     },
     validators: {
       onChange: z.object({
-        email: z.email("Invalid email address"),
+        email: z.string().email("Invalid email address"),
         password: z.string().min(1, "Password is required"),
       }),
       onSubmit: z.object({
-        email: z.email("Invalid email address"),
+        email: z.string().email("Invalid email address"),
         password: z.string().min(1, "Password is required"),
       }),
     },

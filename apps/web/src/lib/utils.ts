@@ -4,7 +4,7 @@ import { twMerge } from "tailwind-merge";
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
-type Chat = {
+export type Chat = {
   id: number;
   title: string;
   lastMessage: string;
@@ -28,7 +28,7 @@ export const chats: Chat[] = [
     title: "Marketing Team",
     lastMessage: "The new campaign is live!",
     timestamp: "2024-06-19T14:15:00Z",
-    unread: 0,  
+    unread: 0,
     avatar: "/avatars/marketing-team.png",
     status: "idle",
   },

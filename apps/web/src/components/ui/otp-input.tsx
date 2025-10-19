@@ -58,16 +58,22 @@ export function OTPInput({
 
   useEffect(() => {
     // Focus on first empty input when value changes
-    const firstEmptyIndex = value.findIndex((char) => !char);
+    const firstEmptyIndex = value.length < length ? value.length : -1;
     if (firstEmptyIndex !== -1 && firstEmptyIndex < length) {
       inputRefs.current[firstEmptyIndex]?.focus();
     }
   }, [value, length]);
 
   return (
-    <div className={cn("flex gap-2", className)} onPaste={handlePaste}>
+    <div
+      aria-label="One-time password input"
+      className={cn("flex gap-2", className)}
+      onPaste={handlePaste}
+      role="group"
+    >
       {Array.from({ length }).map((_, index) => (
         <Input
+          aria-label={`Digit ${index + 1} of ${length}`}
           autoFocus={index === 0}
           className="h-12 w-12 text-center font-mono text-lg"
           inputMode="numeric"
