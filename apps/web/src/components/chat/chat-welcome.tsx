@@ -1,6 +1,5 @@
 "use client";
 
-// import { IconPlus } from "@tabler/icons-react";
 import { AlertCircle, ArrowUpIcon, Send } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -23,6 +22,9 @@ import {
 
 import { Separator } from "@/components/ui/separator";
 
+const UNAUTHORIZED_STATUS = 401;
+const AUTH_ERROR_REDIRECT_DELAY_MS = 2000;
+
 type ChatWelcomeProps = {
   user: {
     name?: string | null;
@@ -37,50 +39,54 @@ const ChatWelcome: React.FC<ChatWelcomeProps> = ({ user }) => {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
+  const createChat = async (prompt: string) => {
+    const response = await fetch("/api/chats", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        initialMessage: prompt.trim(),
+      }),
+    });
+
+    if (response.status === UNAUTHORIZED_STATUS) {
+      throw new Error("You're not authenticated. Redirecting to login...");
+    }
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        errorData.error || `Failed to create chat: ${response.statusText}`
+      );
+    }
+
+    const data = await response.json();
+    const { chatId } = data;
+
+    if (!chatId) {
+      throw new Error("No chat ID returned from server");
+    }
+
+    return chatId;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!message.trim() || isLoading) return;
+    if (!message.trim() || isLoading) {
+      return;
+    }
 
     setIsLoading(true);
     setError(null);
 
     try {
-      const response = await fetch("/api/chats", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          initialMessage: message.trim(),
-        }),
-      });
-
-      if (response.status === 401) {
-        setError("You're not authenticated. Redirecting to login...");
-        setTimeout(() => router.push("/magic"), 1500);
-        return;
-      }
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          errorData.error || `Failed to create chat: ${response.statusText}`
-        );
-      }
-
-      const data = await response.json();
-      const { chatId } = data;
-
-      if (!chatId) {
-        throw new Error("No chat ID returned from server");
-      }
-
-      // Navigate to the dual-sidebar chat interface
+      const chatId = await createChat(message);
       router.push(`/chat/${chatId}`);
-    } catch (error) {
+    } catch (err) {
       const errorMessage =
-        error instanceof Error
-          ? error.message
+        err instanceof Error
+          ? err.message
           : "Failed to create chat. Please try again.";
       setError(errorMessage);
 
@@ -90,7 +96,7 @@ const ChatWelcome: React.FC<ChatWelcomeProps> = ({ user }) => {
         errorMessage.includes("Unauthorized") ||
         errorMessage.includes("authentication")
       ) {
-        setTimeout(() => router.push("/magic"), 2000);
+        setTimeout(() => router.push("/magic"), AUTH_ERROR_REDIRECT_DELAY_MS);
       }
     } finally {
       setIsLoading(false);

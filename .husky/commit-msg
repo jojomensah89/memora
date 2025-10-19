@@ -1,0 +1,17 @@
+#!/bin/sh
+
+set -euo pipefail
+
+COMMIT_MSG_FILE=$1
+
+if [ ! -f "$COMMIT_MSG_FILE" ]; then
+  echo "Commit message file not found."
+  exit 1
+fi
+
+COMMIT_MSG=$(head -n1 "$COMMIT_MSG_FILE")
+
+if ! echo "$COMMIT_MSG" | grep -Eq '^(chore|fix|refactor|feat)(\([^)]+\))?: '; then
+  echo "Commit message must start with chore, fix, refactor, or feat, optionally with a scope, followed by ': '."
+  exit 1
+fi

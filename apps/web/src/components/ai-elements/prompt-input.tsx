@@ -2,12 +2,12 @@
 
 import type { ChatStatus, FileUIPart } from "ai";
 import {
+  ArrowUpIcon,
   ImageIcon,
   Loader2Icon,
   MicIcon,
   PaperclipIcon,
   PlusIcon,
-  ArrowUpIcon,
   SquareIcon,
   XIcon,
 } from "lucide-react";

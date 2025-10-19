@@ -53,7 +53,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ chatId }) => {
   const [useWebSearch, setUseWebSearch] = useState<boolean>(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const { messages, status, sendMessage } = useChat();
+  const { messages, status, sendMessage } = useChat({ id: chatId });
 
   const handleSubmit = (message: PromptInputMessage) => {
     const hasText = Boolean(message.text);
@@ -151,12 +151,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ chatId }) => {
                     <PromptInputModelSelectValue />
                   </PromptInputModelSelectTrigger>
                   <PromptInputModelSelectContent>
-                    {models.map((model) => (
+                    {models.map((modelItem) => (
                       <PromptInputModelSelectItem
-                        key={model.id}
-                        value={model.id}
+                        key={modelItem.id}
+                        value={modelItem.id}
                       >
-                        {model.name}
+                        {modelItem.name}
                       </PromptInputModelSelectItem>
                     ))}
                   </PromptInputModelSelectContent>

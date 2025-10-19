@@ -131,7 +131,7 @@ const RightSidebar = () => {
     }));
   };
 
-  const handleItemSelect = (itemId: string) => {
+  const handleItemSelect = (_itemId: string) => {
     // Placeholder for item selection logic
   };
 

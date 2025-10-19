@@ -45,12 +45,11 @@ export function SignupForm({
           callbackURL: "/dashboard",
         },
         {
-          onSuccess: async () => {
+          onSuccess: () => {
             // Use provided organization name or default to "Name's Organization"
-            const orgName =
-              value.organizationName && value.organizationName.trim()
-                ? value.organizationName.trim()
-                : `${value.name}'s Organization`;
+            const orgName = value.organizationName?.trim()
+              ? value.organizationName.trim()
+              : `${value.name}'s Organization`;
 
             const slug = orgName
               .toLowerCase()
@@ -63,28 +62,10 @@ export function SignupForm({
             if (!slug) {
               toast.error(
                 "Invalid organization name. Please use alphanumeric characters."
-                  email: z.string().email("Invalid email address"),
+              );
               return;
             }
 
-            try {
-              await authClient.organization.create({
-                name: orgName,
-                slug,
-                metadata: {
-                  createdBySignUp: true,
-                  customName: !!(
-                    value.organizationName && value.organizationName.trim()
-                  ),
-                },
-              });
-              toast.success("Account and organization created successfully!");
-            } catch (error) {
-              // Account was created successfully, just organization creation failed
-              toast.success(
-                "Account created successfully! Your organization will be created automatically."
-                  email: z.string().email("Invalid email address"),
-            }
             router.push("/success");
           },
           onError: (error) => {

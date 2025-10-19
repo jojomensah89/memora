@@ -6,9 +6,9 @@ import { trpc } from "@/utils/trpc";
 
 export default function Dashboard({
   customerState,
-}: {
+}: Readonly<{
   customerState: ReturnType<typeof authClient.customer.state>;
-}) {
+}>) {
   const privateData = useQuery(trpc.privateData.queryOptions());
 
   const hasProSubscription =

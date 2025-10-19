@@ -11,11 +11,16 @@ export default function Page() {
         <div className="flex justify-center">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
             <svg
+              aria-labelledby="success-icon-title"
               className="h-8 w-8 text-primary"
               fill="none"
+              role="img"
               stroke="currentColor"
               viewBox="0 0 24 24"
             >
+              <title id="success-icon-title">
+                Account created successfully
+              </title>
               <path
                 d="M5 13l4 4L19 7"
                 strokeLinecap="round"

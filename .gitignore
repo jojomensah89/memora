@@ -72,8 +72,13 @@ CI_CD_STATUS.md
 CI_FIXES_COMPLETE.md
 FIXING_LINT_ERRORS.md
 GITHUB_SETUP_COMPLETE.md
+DEBUG_SIGNUP.md
 
 # Images
 images/
 packages/db/prisma/generated
 packages/db/prisma/migrations
+.factory
+DEBUG_SIGNUP.md
+gha-creds-*.json
+lint-errors.md
