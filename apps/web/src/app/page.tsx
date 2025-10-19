@@ -34,7 +34,7 @@ export default function Home() {
             <span className="text-muted-foreground text-sm">
               {healthCheck.isLoading && "Checking..."}
               {!healthCheck.isLoading && healthCheck.data && "Connected"}
-              {!healthCheck.isLoading && !healthCheck.data && "Disconnected"}
+              {!(healthCheck.isLoading || healthCheck.data) && "Disconnected"}
             </span>
           </div>
         </section>
