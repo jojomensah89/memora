@@ -1,7 +1,7 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { AlertCircle, GlobeIcon } from "lucide-react";
+import { GlobeIcon } from "lucide-react";
 import { useState } from "react";
 import {
   PromptInput,
@@ -24,7 +24,6 @@ import {
   PromptInputTextarea,
   PromptInputTools,
 } from "@/components/ai-elements/prompt-input";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 
 type ChatWelcomeProps = {
   user: {
@@ -39,8 +38,6 @@ const models = [
 ];
 
 const ChatWelcome: React.FC<ChatWelcomeProps> = ({ user }) => {
-  const [error, setError] = useState<string | null>(null);
-
   const [text, setText] = useState<string>("");
   const [model, setModel] = useState<string>(models[0].id);
   const [useWebSearch, setUseWebSearch] = useState<boolean>(false);
@@ -56,16 +53,6 @@ const ChatWelcome: React.FC<ChatWelcomeProps> = ({ user }) => {
               Hi {user.name || user.email}, how can I help you today?
             </h1>
           </div>
-
-          {/* Error Alert */}
-          {error && (
-            <Alert className="mb-6 border-red-200 bg-red-50 dark:bg-red-900/10">
-              <AlertCircle className="h-4 w-4 text-red-600" />
-              <AlertDescription className="text-red-600">
-                {error}
-              </AlertDescription>
-            </Alert>
-          )}
 
           {/* Chat Input */}
           <PromptInput className="mt-4" globalDrop multiple onSubmit={() => {}}>
