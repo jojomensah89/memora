@@ -20,7 +20,7 @@ export default function Providers({
       enableSystem
     >
       <QueryClientProvider client={queryClient}>
-        <SidebarProvider>
+        <SidebarProvider defaultOpen={false}>
           <LeftSidebar chats={chats} />
           <SidebarInset />
           {children}
