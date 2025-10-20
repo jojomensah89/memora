@@ -1,8 +1,8 @@
 "use client";
 
+import { useChat } from "@ai-sdk/react";
 import { AlertCircle, GlobeIcon } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import {
   PromptInput,
   PromptInputActionAddAttachments,
@@ -26,8 +26,6 @@ import {
 } from "@/components/ai-elements/prompt-input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
-
-
 type ChatWelcomeProps = {
   user: {
     name?: string | null;
@@ -46,7 +44,7 @@ const ChatWelcome: React.FC<ChatWelcomeProps> = ({ user }) => {
   const [text, setText] = useState<string>("");
   const [model, setModel] = useState<string>(models[0].id);
   const [useWebSearch, setUseWebSearch] = useState<boolean>(false);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { messages, status, sendMessage } = useChat();
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -57,7 +55,6 @@ const ChatWelcome: React.FC<ChatWelcomeProps> = ({ user }) => {
             <h1 className="mb-2 font-bold text-3xl">
               Hi {user.name || user.email}, how can I help you today?
             </h1>
-          
           </div>
 
           {/* Error Alert */}
