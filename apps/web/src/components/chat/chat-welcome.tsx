@@ -1,7 +1,8 @@
 "use client";
 
-import { useChat } from "@ai-sdk/react";
+import { useMutation } from "@tanstack/react-query";
 import { GlobeIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   PromptInput,
@@ -24,22 +25,30 @@ import {
   PromptInputTextarea,
   PromptInputTools,
 } from "@/components/ai-elements/prompt-input";
+import { useUser } from "@/hooks/use-user";
 import { models } from "@/lib/utils";
+import { trpc } from "@/utils/trpc";
 
-type ChatWelcomeProps = {
-  user: {
-    name?: string | null;
-    email?: string | null;
-    image?: string | null;
-  };
-};
-
-
-const ChatWelcome: React.FC<ChatWelcomeProps> = ({ user }) => {
-  const [text, setText] = useState<string>("");
+const ChatWelcome = () => {
+  const [prompt, setPrompt] = useState("");
   const [model, setModel] = useState<string>(models[0].id);
   const [useWebSearch, setUseWebSearch] = useState<boolean>(false);
-  const { messages, status, sendMessage } = useChat();
+  const router = useRouter();
+  const user = useUser();
+
+  const createChatMutation = useMutation({
+    mutationFn: async (initialMessage: string) =>
+      trpc.chat.createChat.mutate({ initialMessage }),
+    onSuccess: (data) => {
+      router.push(`/chat/${data.id}`);
+    },
+  });
+
+  const handleSubmit = (value: string) => {
+    if (value.trim()) {
+      createChatMutation.mutate(value);
+    }
+  };
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -48,12 +57,18 @@ const ChatWelcome: React.FC<ChatWelcomeProps> = ({ user }) => {
         <div className="w-full max-w-3xl px-6">
           <div className="mb-8 text-center">
             <h1 className="mb-2 font-bold text-3xl">
-              Hi {user.name || user.email}, how can I help you today?
+              Hi {user?.name || user?.email}, how can I help you today?
             </h1>
           </div>
 
           {/* Chat Input */}
-          <PromptInput className="mt-4" globalDrop multiple onSubmit={() => {}}>
+          <PromptInput
+            className="mt-4"
+            globalDrop
+            multiple
+            onSubmit={handleSubmit}
+            onValueChange={(value) => setPrompt(value)}
+          >
             <PromptInputBody>
               <PromptInputAttachments>
                 {(attachment) => <PromptInputAttachment data={attachment} />}
@@ -69,7 +84,10 @@ const ChatWelcome: React.FC<ChatWelcomeProps> = ({ user }) => {
                   </PromptInputActionMenuContent>
                 </PromptInputActionMenu>
                 <PromptInputSpeechButton />
-                <PromptInputButton variant={useWebSearch ? "default" : "ghost"}>
+                <PromptInputButton
+                  onClick={() => setUseWebSearch(!useWebSearch)}
+                  variant={useWebSearch ? "default" : "ghost"}
+                >
                   <GlobeIcon size={16} />
                   <span>Search</span>
                 </PromptInputButton>
@@ -94,7 +112,9 @@ const ChatWelcome: React.FC<ChatWelcomeProps> = ({ user }) => {
                   </PromptInputModelSelectContent>
                 </PromptInputModelSelect>
               </PromptInputTools>
-              <PromptInputSubmit disabled={!(text || status)} status={status} />
+              <PromptInputSubmit
+                disabled={createChatMutation.isPending || !prompt.trim()}
+              />
             </PromptInputFooter>
           </PromptInput>
         </div>

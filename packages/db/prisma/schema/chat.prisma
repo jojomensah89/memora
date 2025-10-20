@@ -6,18 +6,64 @@ model Chat {
   userId    String
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   messages  Message[]
+  isArchived Boolean  @default(false)
+  isPinned  Boolean   @default(false)
+  metadata Json?
 
+  // Context & Rules
+  contextLinks    ChatContext[]  // All context items linked to this chat
+  ruleLinks       ChatRule[]     // All rules linked to this chat
+
+  @@index([userId, createdAt])
+  @@index([userId, isPinned])
   @@map("chat")
 }
 
 model Message {
-  id        String   @id @default(cuid())
-  content   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  chatId    String
-  chat      Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
-  isFromUser Boolean
-
+  id         String      @id @default(cuid())
+  content    String
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  chatId     String
+  chat       Chat        @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  role       MessageRole @default(user)
+  toolInvocations Json?   // For AI SDK tool calls
+  metadata Json?
+  attachments Attachment[]
+  
+  // Track which context/rules were active when this message was sent
+  contextUsed     ContextItem[]  @relation("MessageContext")
+  rulesUsed       Rule[]         @relation("MessageRules")
+  
+  @@index([chatId, createdAt])
   @@map("message")
+}
+
+enum MessageRole {
+  user
+  assistant
+  system
+  tool
+}
+
+model Attachment {
+  id            String         @id @default(cuid())
+  messageId     String
+  message       Message        @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  kind          AttachmentKind
+  filename      String
+  mimeType      String
+  size          Int
+  storageKey    String
+  transcription String?
+  metadata      Json?
+  createdAt     DateTime       @default(now())
+
+  @@index([messageId])
+  @@map("attachment")
+}
+
+enum AttachmentKind {
+  image
+  document
 }
