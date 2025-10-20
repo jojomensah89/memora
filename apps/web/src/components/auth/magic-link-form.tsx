@@ -44,13 +44,13 @@ export default function MagicLinkForm({
         {
           email: value.email,
           name: value.name,
-          callbackURL: "/dashboard",
+          callbackURL: "/chat",
           newUserCallbackURL: "/success",
           errorCallbackURL: "/error",
         },
         {
           onSuccess: () => {
-            router.push("/dashboard");
+            router.push("/chat");
             toast.success("Sign up successful");
           },
           onError: (error) => {
