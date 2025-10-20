@@ -24,6 +24,7 @@ import {
   PromptInputTextarea,
   PromptInputTools,
 } from "@/components/ai-elements/prompt-input";
+import { models } from "@/lib/utils";
 
 type ChatWelcomeProps = {
   user: {
@@ -32,10 +33,7 @@ type ChatWelcomeProps = {
     image?: string | null;
   };
 };
-const models = [
-  { id: "gpt-4o", name: "GPT-4o" },
-  { id: "claude-opus-4-20250514", name: "Claude 4 Opus" },
-];
+
 
 const ChatWelcome: React.FC<ChatWelcomeProps> = ({ user }) => {
   const [text, setText] = useState<string>("");
