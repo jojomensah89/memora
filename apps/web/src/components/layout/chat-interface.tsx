@@ -32,11 +32,9 @@ import {
   PromptInputTools,
 } from "@/components/ai-elements/prompt-input";
 import { Response } from "@/components/ai-elements/response";
+import { models } from "@/lib/utils";
 
-const models = [
-  { id: "gpt-4o", name: "GPT-4o" },
-  { id: "claude-opus-4-20250514", name: "Claude 4 Opus" },
-];
+
 
 type ChatInterfaceProps = {
   chatId: string;

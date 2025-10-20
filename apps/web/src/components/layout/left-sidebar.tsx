@@ -1,6 +1,7 @@
 "use client";
 
-import { MessageSquare, Plus } from "lucide-react";
+import { BookUser, FileText, MessageSquare, Plus } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -14,6 +15,7 @@ import {
   SidebarMenuItem,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { useUser } from "@/hooks/use-user";
 import { useUIStore } from "@/stores/useUIStore";
 import { NavUser } from "../nav-user";
 
@@ -34,6 +36,7 @@ type LeftSidebarProps = {
 const LeftSidebar: React.FC<LeftSidebarProps> = ({ chats }) => {
   const { setActiveChatId, activeChatId } = useUIStore();
   const router = useRouter();
+  const user = useUser();
 
   const handleNewChat = () => {
     // Navigate to new chat
@@ -47,22 +50,16 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ chats }) => {
     router.push(`/chat/${chatId}`);
   };
 
-  const user = {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
-  };
-
   return (
     <Sidebar collapsible="icon" side="left">
       <SidebarHeader className="border-b p-1">
         <div className="flex cursor-pointer items-center p-1">
           <SidebarTrigger className="cursor-pointer" />
-          <div className="flex items-center">
+          <Link className="flex items-center" href="/">
             <span className="ml-2 font-semibold group-data-[state=collapsed]:hidden">
               Memora
             </span>
-          </div>
+          </Link>
         </div>
       </SidebarHeader>
 
@@ -85,6 +82,25 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ chats }) => {
               <MessageSquare className="mr-2 h-4 w-4" />
               <span className="text-sm group-data-[state=collapsed]:hidden">
                 Chats
+              </span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton className="cursor-pointer" tooltip="Rules">
+              <FileText className="mr-2 h-4 w-4" />
+              <span className="text-sm group-data-[state=collapsed]:hidden">
+                Rules
+              </span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              className="cursor-pointer"
+              tooltip="Context Library"
+            >
+              <BookUser className="mr-2 h-4 w-4" />
+              <span className="text-sm group-data-[state=collapsed]:hidden">
+                Context Library
               </span>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -113,9 +129,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ chats }) => {
           </SidebarMenu>
         </div>
       </SidebarContent>
-      <SidebarFooter>
-        <NavUser user={user} />
-      </SidebarFooter>
+      <SidebarFooter>{user && <NavUser user={user} />}</SidebarFooter>
     </Sidebar>
   );
 };
