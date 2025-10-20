@@ -1,20 +1,35 @@
-# Memora
+# MEMORA
 
-> An AI chat application with intelligent context management for individuals and teams.
+> **Version 2.1** | AI Chat with Context Library, Rules Engine & Prompt Enhancement
 
-![Memora](https://img.shields.io/badge/status-in%20development-yellow) ![License](https://img.shields.io/badge/license-MIT-blue)
+![Memora](https://img.shields.io/badge/status-in%20development-yellow) ![License](https://img.shields.io/badge/license-MIT-blue) ![Phase](https://img.shields.io/badge/phase-2%20backend-blue)
 
 ## What is Memora?
 
-Memora is an AI-powered chat application that solves the context problem. Instead of repeatedly copying files, docs, and code snippets into every conversation, users can:
+Memora is an AI chat application that transforms how you interact with AI through three revolutionary features:
 
-- **Upload once, use everywhere**: Files, URLs, GitHub repos, and custom rules
-- **Organize intelligently**: Tag and categorize context for easy discovery
-- **Collaborate seamlessly**: Share context across your organization
-- **Control costs**: Track token usage and manage spending limits
-- **Work flexibly**: Fork conversations at any point, share chats via links
+1. **Context Library** 📚 - Upload files, URLs, GitHub repos once → use everywhere
+2. **Rules Engine** 📝 - Define AI behavior with custom rules and preferences
+3. **Prompt Enhancement** ✨ - Auto-improve your messages for better AI responses
 
-Inspired by [Conare](https://conare.ai/), but designed for web-based chat applications like Claude.ai and Gemini.
+**Stop fighting with prompts.** Memora automatically enhances your questions, manages your context, and applies your rules - so you get better AI responses every time.
+
+### The Problem We Solve
+
+Traditional AI chats require you to:
+- ❌ Copy-paste context for every conversation
+- ❌ Manually structure every prompt
+- ❌ Repeat the same instructions over and over
+- ❌ Guess at token counts and costs
+
+### Our Solution
+
+With Memora, you:
+- ✅ Upload context once, use in all chats
+- ✅ Let AI enhance your prompts automatically
+- ✅ Set rules that persist across conversations
+- ✅ See real-time token usage and costs
+- ✅ Organize everything with tags and search
 
 ## ✨ Key Features
 
@@ -24,33 +39,59 @@ Inspired by [Conare](https://conare.ai/), but designed for web-based chat applic
 - Easy model switching
 - Message history and threading
 
-### 📚 Context Management
-- **Upload Files**: PDFs, Markdown, code files, documents
-- **Add URLs**: Automatic content extraction and cleaning
-- **GitHub Integration**: Select specific files/folders from repos
-- **Vibe-Rules**: Custom instructions and coding patterns
-- **Smart Selection**: Choose which context to include per message
+### 📚 Context Library (NEW)
+- **Upload Files**: PDFs, Markdown, code files, documents - auto text extraction
+- **Add URLs**: Automatic content fetching and parsing
+- **GitHub Integration**: Clone repos, select specific files/folders
+- **Manual Documents**: Write context directly with markdown support
+- **Scope System**:
+  - 🟢 **GLOBAL**: Available in all your chats
+  - 🔵 **LOCAL**: Only in specific chat
+  - 🟠 **ORGANIZATION**: Team-shared (coming soon)
+- **Smart Selection**: Drag & drop to reorder, checkbox to select per message
 - **Token Counting**: See exactly how much context you're using
+- **Tag Organization**: Filter and search by tags
 
-### 👥 Organizations & Teams
+### 📝 Rules Engine (NEW)
+- **Define AI Behavior**: Set coding standards, preferences, tone
+- **Global Rules**: Applied to all your chats automatically
+- **Local Rules**: Chat-specific rules for particular projects
+- **Markdown Support**: Write rules with formatting and examples
+- **Active/Inactive Toggle**: Quickly enable/disable rules
+- **Priority Ordering**: Drag to reorder by importance
+- **Example Rules**:
+  - "Always use TypeScript strict mode"
+  - "Be concise in responses"
+  - "Follow Airbnb style guide"
+  - "Use friendly, conversational tone"
+
+### ✨ Prompt Enhancement (NEW)
+- **Auto-Improve Messages**: Click "Enhance" to make prompts better
+- **Adds Clarity**: Vague questions → specific, clear questions
+- **Adds Structure**: Unstructured text → organized, numbered lists
+- **Context-Aware**: References available context automatically
+- **Compare & Edit**: See original vs enhanced, edit before sending
+- **Auto-Enhance**: Optional setting to enhance all messages
+- **Cost Effective**: Uses lightweight models (gpt-4o-mini)
+
+### 👥 Organizations & Teams (Coming Soon)
 - Create or join organizations
 - Invite team members via email
-- **Local Context**: Private to you
-- **Global Context**: Shared across your org
+- Share global context across your org
 - Role-based permissions (Owner, Admin, Member)
 
-### 🔄 Collaboration
+### 🔄 Collaboration (Coming Soon)
 - **Share Chats**: Generate public links for read-only access
 - **Fork Conversations**: Branch off from any message
 - **Version Control**: Track context changes over time
 - **Real-time Updates**: See when team members add global context
 
 ### 📊 Analytics & Cost Control
-- Token usage tracking per user and organization
-- Cost breakdown by provider and model
-- Visual dashboards with charts
-- Set spending limits and get alerts
-- Cost estimates before sending messages
+- **Real-time Token Calculator**: See exact token count before sending
+- **Cost Estimates**: Know the cost of each message
+- **Usage Breakdown**: Context, rules, and message tokens separately
+- **Token Tracking**: Per message, per chat, per user
+- **Provider Comparison**: See costs across Claude, Gemini, OpenAI
 
 ## 🎨 Design
 
@@ -88,13 +129,22 @@ Clean, modern interface inspired by Linear and Vercel:
 
 ## 📖 Documentation
 
-This project includes comprehensive specifications:
-
-- **[MEMORA_SPEC.md](./MEMORA_SPEC.md)** - Complete technical specification, architecture, and database schema
-- **[IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md)** - 8-week development roadmap with progress tracker
-- **[CLAUDE_CODE_PROMPTS.md](./CLAUDE_CODE_PROMPTS.md)** - Step-by-step implementation prompts for AI coding assistants
-- **[GOOGLE_STITCH_PROMPTS.md](./GOOGLE_STITCH_PROMPTS.md)** - UI generation prompts for visual design
+### Essential Docs
+- **[MEMORA_SPEC.md](./MEMORA_SPEC.md)** - Complete technical specification (v2.1)
+- **[IMPLEMENTATION_STATUS.md](./IMPLEMENTATION_STATUS.md)** - Current status and next steps
 - **[AI_ASSISTANT_GUIDE.md](./AI_ASSISTANT_GUIDE.md)** - Quick reference for AI assistants
+- **[AGENTS.md](./AGENTS.md)** - Coding guidelines for AI agents
+
+### For AI Coding Assistants
+- **[CLAUDE_CODE_PROMPTS.md](./CLAUDE_CODE_PROMPTS.md)** - Step-by-step implementation prompts
+- **[GOOGLE_STITCH_PROMPTS.md](./GOOGLE_STITCH_PROMPTS.md)** - UI generation prompts
+- **[IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md)** - Original 8-week roadmap
+
+### Tech Reference
+- **[TECH_STACK_UPDATES.md](./TECH_STACK_UPDATES.md)** - Important tech stack differences
+
+### Archived
+- See `docs/archive/` for obsolete documentation
 
 ## 🚀 Getting Started
 
@@ -157,40 +207,40 @@ bun test             # Run tests
 
 ## 🗺️ Roadmap
 
-### Phase 1: Foundation (Weeks 1-2) ✅
-- [x] Database schema
-- [x] Authentication flow
-- [x] Basic chat UI
-- [x] AI provider integration
-- [x] Message streaming
+### Phase 1: Core Foundation ✅ COMPLETE
+- [x] Database schema (auth, chat, context, rules)
+- [x] Authentication flow (Better Auth)
+- [x] Backend routers (context, rules, chat)
+- [x] Prisma migrations
 
-### Phase 2: Context Management (Weeks 3-4) 🚧
-- [ ] File upload and processing
-- [ ] URL fetching
-- [ ] GitHub repo integration
-- [ ] Context panel UI
-- [ ] Context selection and injection
+### Phase 2: Backend APIs 🚧 IN PROGRESS
+- [x] Context router with full CRUD
+- [x] Rules router with full CRUD
+- [x] Prompt enhancement infrastructure
+- [ ] Connect routers to main app
+- [ ] Chat service with context/rules injection
+- [ ] File upload to S3
+- [ ] Text extraction utilities
+- [ ] Token counting utility
 
-### Phase 3: Organizations (Week 5) ⬜
-- [ ] Org creation and management
-- [ ] Team member invites
-- [ ] Local vs Global context
-- [ ] Permissions and roles
+### Phase 3: Frontend UI 📋 NEXT
+- [ ] `/context` page - Context Library management
+- [ ] `/rules` page - Rules management
+- [ ] Enhanced right sidebar (3-section layout)
+- [ ] Prompt enhancement UI
+- [ ] Token calculator widget
+- [ ] Drag & drop for ordering
 
-### Phase 4: Collaboration (Week 6) ⬜
-- [ ] Chat sharing
-- [ ] Conversation forking
-- [ ] Token usage tracking
-- [ ] Analytics dashboard
-
-### Phase 5: Polish (Week 7) ⬜
-- [ ] Loading states
-- [ ] Error handling
-- [ ] Performance optimization
+### Phase 4: Integration & Testing
+- [ ] End-to-end message flow
+- [ ] Context + Rules + Enhancement working together
+- [ ] Token tracking and cost estimation
+- [ ] Loading states and error handling
 - [ ] Responsive design
+- [ ] E2E testing
 
-### Phase 6: Launch (Week 8) ⬜
-- [ ] Testing (unit + E2E)
+### Phase 5: Polish & Launch
+- [ ] Performance optimization
 - [ ] Documentation
 - [ ] Production deployment
 - [ ] Beta user onboarding
