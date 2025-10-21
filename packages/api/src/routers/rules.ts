@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, protectedProcedure } from "../trpc";
+import { protectedProcedure, router } from "../index";
 
 export const rulesRouter = router({
   // List all rules
@@ -291,17 +291,16 @@ export const rulesRouter = router({
           data: { isActive: !existing.isActive },
         });
         return updated;
-      } else {
-        // Create new link (active by default)
-        const created = await ctx.db.chatRule.create({
-          data: {
-            chatId: input.chatId,
-            ruleId: input.ruleId,
-            isActive: true,
-          },
-        });
-        return created;
       }
+      // Create new link (active by default)
+      const created = await ctx.db.chatRule.create({
+        data: {
+          chatId: input.chatId,
+          ruleId: input.ruleId,
+          isActive: true,
+        },
+      });
+      return created;
     }),
 
   // Get active rules for chat (for message sending)

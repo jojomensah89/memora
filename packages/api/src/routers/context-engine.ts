@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, protectedProcedure } from "../trpc";
+import { protectedProcedure, router } from "../index";
 
 export const contextRouter = router({
   // List all context items
