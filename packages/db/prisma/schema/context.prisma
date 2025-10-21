@@ -1,0 +1,168 @@
+// ============================================
+// CONTEXT ITEMS (Files, URLs, GitHub, etc.)
+// ============================================
+
+model ContextItem {
+  id            String        @id @default(cuid()) @map("_id")
+  name          String
+  description   String?
+  type          ContextType   @default(FILE)
+  scope         ContextScope  @default(GLOBAL)
+  
+  // Content
+  content       String        // Extracted text
+  rawContent    String?       // Original if different
+  
+  // File metadata
+  size          Int?          // bytes
+  mimeType      String?
+  storageKey    String?       // S3 key
+  url           String?       // For URL type
+  
+  // Token tracking
+  tokenCount    Int?          // Estimated tokens
+  
+  // Timestamps
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  
+  // Ownership
+  userId        String
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Relations
+  tags          ContextTag[]
+  chatLinks     ChatContext[] // Which chats use this
+  messages      Message[]     @relation("MessageContext") // Which messages used this
+  
+  @@index([userId, scope, type])
+  @@index([userId, createdAt])
+  @@map("context_item")
+}
+
+enum ContextType {
+  FILE          // Uploaded files (PDF, docs, code, etc.)
+  URL           // Web pages
+  GITHUB_REPO   // GitHub repositories
+  DOCUMENT      // Manual text entry
+}
+
+enum ContextScope {
+  LOCAL         // Only in specific chat
+  GLOBAL        // Available in all user's chats
+  ORGANIZATION  // Shared with org (future)
+}
+
+// ============================================
+// RULES (Vibe Rules / Instructions)
+// ============================================
+
+model Rule {
+  id            String      @id @default(cuid()) @map("_id")
+  name          String
+  description   String?
+  content       String      // Markdown content
+  
+  // Status
+  isActive      Boolean     @default(true)
+  scope         RuleScope   @default(GLOBAL)
+  
+  // Timestamps
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  
+  // Ownership
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Relations
+  tags          RuleTag[]
+  chatLinks     ChatRule[]  // Which chats use this rule
+  messages      Message[]   @relation("MessageRules") // Which messages used this rule
+  
+  @@index([userId, scope, isActive])
+  @@index([userId, createdAt])
+  @@map("rule")
+}
+
+enum RuleScope {
+  LOCAL         // Only in specific chat
+  GLOBAL        // Applied to all user's chats by default
+  ORGANIZATION  // Applied to all org chats (future)
+}
+
+// ============================================
+// TAGS
+// ============================================
+
+model ContextTag {
+  id           String        @id @default(cuid()) @map("_id")
+  name         String
+  color        String?       // Hex color
+  items        ContextItem[]
+  userId       String        // Tags are user-specific
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, name])
+  @@map("context_tag")
+}
+
+model RuleTag {
+  id           String   @id @default(cuid()) @map("_id")
+  name         String
+  color        String?  // Hex color
+  rules        Rule[]
+  userId       String   // Tags are user-specific
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, name])
+  @@map("rule_tag")
+}
+
+// ============================================
+// CHAT ↔ CONTEXT/RULES RELATIONSHIPS
+// ============================================
+
+// Links chat to context items (many-to-many)
+model ChatContext {
+  id            String      @id @default(cuid()) @map("_id")
+  
+  chatId        String
+  chat          Chat        @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  
+  contextItemId String
+  contextItem   ContextItem @relation(fields: [contextItemId], references: [id], onDelete: Cascade)
+  
+  // Selection state
+  isSelected    Boolean     @default(true)  // Currently selected for use
+  
+  // Timestamps
+  addedAt       DateTime    @default(now())
+  lastUsedAt    DateTime?   // Last message that used this
+  
+  @@unique([chatId, contextItemId])
+  @@index([chatId, isSelected])
+  @@map("chat_context")
+}
+
+// Links chat to rules (many-to-many)
+model ChatRule {
+  id            String   @id @default(cuid()) @map("_id")
+  
+  chatId        String
+  chat          Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  
+  ruleId        String
+  rule          Rule     @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  
+  // Selection state
+  isActive      Boolean  @default(true)  // Currently active for this chat
+  
+  // Timestamps
+  addedAt       DateTime @default(now())
+  lastUsedAt    DateTime? // Last message that used this
+  
+  @@unique([chatId, ruleId])
+  @@index([chatId, isActive])
+  @@map("chat_rule")
+}

@@ -8,6 +8,13 @@ model User {
   updatedAt     DateTime
   sessions      Session[]
   accounts      Account[]
+  chats         Chat[]
+
+  // Context & Rules
+  contextItems  ContextItem[]
+  rules         Rule[]
+  contextTags   ContextTag[]
+  ruleTags      RuleTag[]
 
   @@unique([email])
   @@map("user")

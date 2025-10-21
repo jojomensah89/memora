@@ -34,18 +34,15 @@ export default function Page() {
         <div className="space-y-2">
           <h1 className="font-bold text-3xl text-foreground">Welcome!</h1>
           <p className="text-muted-foreground">
-            Your account and organization have been successfully created. You
-            can now start collaborating with your team.
+            Your account has been successfully created. You can now start
+            exploring the platform.
           </p>
         </div>
 
         <div className="space-y-3 pt-4">
-          <Link className="w-full" href="/dashboard">
-            <Button className="h-10 w-full">Go to Dashboard</Button>
+          <Link className="w-full" href="/chat">
+            <Button className="h-10 w-full">Go to Memora</Button>
           </Link>
-          <Button className="w-full" variant="outline">
-            Invite Team Members
-          </Button>
         </div>
       </Card>
     </main>
