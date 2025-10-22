@@ -4,7 +4,7 @@ import type { AIProvider } from "@prisma/client";
  * Available AI Models Configuration
  */
 
-export interface ModelConfig {
+export type ModelConfig = {
   id: string;
   name: string;
   provider: AIProvider;
@@ -12,7 +12,7 @@ export interface ModelConfig {
   supportsStreaming: boolean;
   supportsTools: boolean;
   supportsVision: boolean;
-}
+};
 
 export const AVAILABLE_MODELS: ModelConfig[] = [
   // Claude Models

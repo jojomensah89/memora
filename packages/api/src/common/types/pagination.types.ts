@@ -2,19 +2,19 @@
  * Pagination Types
  */
 
-export interface PaginationInput {
+export type PaginationInput = {
   limit?: number;
   cursor?: string;
-}
+};
 
-export interface PaginationResult<T> {
+export type PaginationResult<T> = {
   items: T[];
   nextCursor?: string;
   hasMore: boolean;
-}
+};
 
-export interface PaginationMeta {
+export type PaginationMeta = {
   total?: number;
   limit: number;
   cursor?: string;
-}
+};

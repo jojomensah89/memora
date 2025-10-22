@@ -3,24 +3,24 @@
  * Shared types for AI SDK tools
  */
 
-export interface ContextItem {
+export type ContextItem = {
   id: string;
   name: string;
   content: string;
   type: string;
   scope: string;
-}
+};
 
-export interface Rule {
+export type Rule = {
   id: string;
   name: string;
   content: string;
   scope: string;
-}
+};
 
-export interface ToolContext {
+export type ToolContext = {
   userId: string;
   chatId?: string;
   contextItems?: ContextItem[];
   rules?: Rule[];
-}
+};

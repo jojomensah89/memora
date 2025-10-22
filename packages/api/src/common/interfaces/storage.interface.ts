@@ -2,7 +2,7 @@
  * Storage Adapter Interface
  * Contract for file storage operations (S3, local, etc.)
  */
-export interface IStorageAdapter {
+export type IStorageAdapter = {
   /**
    * Upload a file
    */
@@ -38,4 +38,4 @@ export interface IStorageAdapter {
     mimeType: string;
     lastModified: Date;
   }>;
-}
+};

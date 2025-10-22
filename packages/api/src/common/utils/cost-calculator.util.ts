@@ -1,12 +1,12 @@
 import type { AIProvider } from "@prisma/client";
-import { getModelCost } from "../constants";
+import { COST_CONSTANTS, getModelCost } from "../constants";
 
 /**
  * Cost Calculator Utility
  * Calculates costs for AI provider usage
  */
 
-export interface CostEstimate {
+export type CostEstimate = {
   inputTokens: number;
   outputTokens: number;
   totalTokens: number;
@@ -15,7 +15,7 @@ export interface CostEstimate {
   totalCost: number;
   provider: AIProvider;
   model: string;
-}
+};
 
 /**
  * Calculate cost for tokens
@@ -43,8 +43,10 @@ export function calculateCost(
   }
 
   // Costs are per 1M tokens, convert to actual cost
-  const inputCost = (inputTokens / 1_000_000) * costs.input;
-  const outputCost = (outputTokens / 1_000_000) * costs.output;
+  const inputCost =
+    (inputTokens / COST_CONSTANTS.TOKENS_PER_MILLION) * costs.input;
+  const outputCost =
+    (outputTokens / COST_CONSTANTS.TOKENS_PER_MILLION) * costs.output;
 
   return {
     inputTokens,

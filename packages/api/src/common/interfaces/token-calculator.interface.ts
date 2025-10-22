@@ -5,14 +5,14 @@ import type { AIProvider } from "@prisma/client";
  * Contract for estimating tokens and costs
  */
 
-export interface TokenEstimate {
+export type TokenEstimate = {
   tokens: number;
   cost: number; // USD
   provider: AIProvider;
   model: string;
-}
+};
 
-export interface ITokenCalculator {
+export type ITokenCalculator = {
   /**
    * Estimate tokens for text
    */
@@ -27,4 +27,4 @@ export interface ITokenCalculator {
    * Get full estimate (tokens + cost)
    */
   getEstimate(text: string, provider: AIProvider, model: string): TokenEstimate;
-}
+};
