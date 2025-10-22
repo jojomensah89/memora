@@ -5,7 +5,11 @@ generator client {
   runtime = "bun"
 }
 
+// Database Strategy:
+// - Development: SQLite (fast, zero config, file-based)
+// - Production: PostgreSQL (scalable, robust, cloud-ready)
+// Switch by changing provider and DATABASE_URL in .env
 datasource db {
-  provider = "sqlite"
+  provider = "sqlite"  // Change to "postgresql" for production
   url      = env("DATABASE_URL")
 }

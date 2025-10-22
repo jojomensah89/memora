@@ -212,3 +212,9 @@ body {
     letter-spacing: var(--tracking-normal);
   }
 }
+
+/* Make prompt input opaque with card background so 3D background doesn't show through */
+[data-slot="input-group"] {
+  @apply !bg-card dark:!bg-card;
+}
+

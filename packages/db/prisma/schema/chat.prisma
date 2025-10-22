@@ -10,9 +10,22 @@ model Chat {
   isPinned  Boolean   @default(false)
   metadata Json?
 
+  // AI Provider settings
+  provider  AIProvider @default(CLAUDE)
+  model     String     @default("claude-3-5-sonnet-20241022")
+
+  // Chat forking
+  parentId            String?
+  parent              Chat?   @relation("ChatForks", fields: [parentId], references: [id], onDelete: SetNull)
+  forks               Chat[]  @relation("ChatForks")
+  forkedFromMessageId String? // Which message was this forked from
+
   // Context & Rules
   contextLinks    ChatContext[]  // All context items linked to this chat
   ruleLinks       ChatRule[]     // All rules linked to this chat
+  
+  // Sharing
+  shares          ChatShare[]
 
   @@index([userId, createdAt])
   @@index([userId, isPinned])
@@ -30,6 +43,11 @@ model Message {
   toolInvocations Json?   // For AI SDK tool calls
   metadata Json?
   attachments Attachment[]
+  
+  // Usage tracking
+  tokens     Int?        // Token count for this message
+  cost       Float?      // Estimated cost in USD
+  latency    Int?        // Response time in milliseconds
   
   // Track which context/rules were active when this message was sent
   contextUsed     ContextItem[]  @relation("MessageContext")
@@ -66,4 +84,37 @@ model Attachment {
 enum AttachmentKind {
   image
   document
+}
+
+// ============================================
+// CHAT SHARING
+// ============================================
+
+model ChatShare {
+  id        String    @id @default(cuid()) @map("_id")
+  token     String    @unique @default(cuid()) // Share URL token
+  
+  isPublic  Boolean   @default(true)
+  expiresAt DateTime? // Optional expiration
+  
+  createdAt DateTime  @default(now())
+  
+  chatId    String
+  chat      Chat      @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  
+  sharedById String
+  sharedBy   User     @relation(fields: [sharedById], references: [id], onDelete: Cascade)
+  
+  @@index([token])
+  @@map("chat_share")
+}
+
+// ============================================
+// AI PROVIDER ENUM
+// ============================================
+
+enum AIProvider {
+  CLAUDE
+  GEMINI
+  OPENAI
 }
