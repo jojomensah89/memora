@@ -5,7 +5,7 @@ import { ValidationError } from "../errors";
  */
 
 const ALLOWED_PROTOCOLS = ["http:", "https:"];
-const BLOCKED_DOMAINS = ["localhost", "127.0.0.1", "0.0.0.0"];
+const BLOCKED_DOMAINS = ["localhost", "127.0.0.1", "0.0.0.0", "::1", "::"];
 
 /**
  * Validate URL format and safety
@@ -47,7 +47,17 @@ function isPrivateIP(hostname: string): boolean {
   const privateIPv4Regex =
     /^(10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.|127\.)/;
 
-  return privateIPv4Regex.test(hostname);
+  // Check for IPv4 link-local
+  const linkLocalIPv4Regex = /^169\.254\./;
+
+  // Check for IPv6 private and link-local ranges
+  const privateIPv6Regex = /^(::1$|[fF][cCdD][0-9a-fA-F]{0,2}:|[fF][eE]80:)/;
+
+  return (
+    privateIPv4Regex.test(hostname) ||
+    linkLocalIPv4Regex.test(hostname) ||
+    privateIPv6Regex.test(hostname)
+  );
 }
 
 /**
@@ -60,7 +70,7 @@ export function validateGitHubUrl(urlString: string): {
 } {
   const url = validateUrl(urlString);
 
-  if (!url.hostname.includes("github.com")) {
+  if (url.hostname !== "github.com" && url.hostname !== "www.github.com") {
     throw new ValidationError("URL must be from github.com");
   }
 
