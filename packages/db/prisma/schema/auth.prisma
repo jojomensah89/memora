@@ -16,6 +16,10 @@ model User {
   contextTags   ContextTag[]
   ruleTags      RuleTag[]
 
+  // Sharing & Usage
+  sharedChats   ChatShare[]
+  tokenUsage    TokenUsage[]
+
   @@unique([email])
   @@map("user")
 }

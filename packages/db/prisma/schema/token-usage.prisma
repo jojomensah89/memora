@@ -1,0 +1,25 @@
+// ============================================
+// TOKEN USAGE TRACKING
+// ============================================
+
+model TokenUsage {
+  id        String     @id @default(cuid()) @map("_id")
+  
+  // Provider details
+  provider  AIProvider
+  model     String
+  
+  // Usage metrics
+  tokens    Int
+  cost      Float
+  
+  // Timestamp
+  createdAt DateTime   @default(now())
+  
+  // Ownership
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId, createdAt])
+  @@map("token_usage")
+}

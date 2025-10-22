@@ -20,7 +20,7 @@ model ContextItem {
   url           String?       // For URL type
   
   // Token tracking
-  tokenCount    Int?          // Estimated tokens
+  tokens        Int?          // Estimated tokens for cost calculation
   
   // Timestamps
   createdAt     DateTime      @default(now())
@@ -48,9 +48,8 @@ enum ContextType {
 }
 
 enum ContextScope {
-  LOCAL         // Only in specific chat
-  GLOBAL        // Available in all user's chats
-  ORGANIZATION  // Shared with org (future)
+  LOCAL         // File uploaded in chat, stays in that chat only
+  GLOBAL        // Promoted by user, available in all chats
 }
 
 // ============================================
@@ -88,7 +87,6 @@ model Rule {
 enum RuleScope {
   LOCAL         // Only in specific chat
   GLOBAL        // Applied to all user's chats by default
-  ORGANIZATION  // Applied to all org chats (future)
 }
 
 // ============================================

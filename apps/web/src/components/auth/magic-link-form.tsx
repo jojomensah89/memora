@@ -49,7 +49,7 @@ export default function MagicLinkForm({
   footerLinkText = "Already have an account? Sign in",
   footerLinkHref = "/login",
   ...props
-}: MagicLinkFormProps) {
+}: Readonly<MagicLinkFormProps>) {
   const router = useRouter();
   const { isPending } = authClient.useSession();
 
