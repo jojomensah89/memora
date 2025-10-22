@@ -48,14 +48,10 @@ export abstract class BaseService {
     max?: number
   ): void {
     if (min !== undefined && array.length < min) {
-      throw new ValidationError(
-        `${fieldName} must have at least ${min} items`
-      );
+      throw new ValidationError(`${fieldName} must have at least ${min} items`);
     }
     if (max !== undefined && array.length > max) {
-      throw new ValidationError(
-        `${fieldName} must have at most ${max} items`
-      );
+      throw new ValidationError(`${fieldName} must have at most ${max} items`);
     }
   }
 

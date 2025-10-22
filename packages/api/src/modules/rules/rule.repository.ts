@@ -1,7 +1,7 @@
 import { BaseRepository } from "../../common/base";
-import { DatabaseError, NotFoundError } from "../../common/errors";
-import type { RuleWithTags, RuleStats } from "./rule.types";
+import { DatabaseError } from "../../common/errors";
 import type { CreateRuleInput } from "./rule.inputs";
+import type { RuleStats, RuleWithTags } from "./rule.types";
 
 /**
  * Rule Repository
@@ -80,10 +80,7 @@ export class RuleRepository extends BaseRepository<RuleWithTags> {
   /**
    * Create a new rule
    */
-  async create(
-    userId: string,
-    data: CreateRuleInput
-  ): Promise<RuleWithTags> {
+  async create(userId: string, data: CreateRuleInput): Promise<RuleWithTags> {
     try {
       return await this.prisma.rule.create({
         data: {

@@ -1,12 +1,12 @@
-import { router, protectedProcedure } from "../index";
-import { RuleRepository } from "../modules/rules/rule.repository";
-import { RuleService } from "../modules/rules/rule.service";
+import { protectedProcedure, router } from "../index";
 import { RuleController } from "../modules/rules/rule.controller";
 import {
   createRuleSchema,
   getRuleSchema,
   getRulesForChatSchema,
 } from "../modules/rules/rule.inputs";
+import { RuleRepository } from "../modules/rules/rule.repository";
+import { RuleService } from "../modules/rules/rule.service";
 
 /**
  * Rules Router
@@ -22,36 +22,36 @@ export const rulesRouter = router({
   /**
    * Get all rules for current user
    */
-  getAll: protectedProcedure.query(async ({ ctx }) => {
-    return ruleController.getAll(ctx.session.user.id);
-  }),
+  getAll: protectedProcedure.query(async ({ ctx }) =>
+    ruleController.getAll(ctx.session.user.id)
+  ),
 
   /**
    * Get rules for specific chat (GLOBAL + LOCAL)
    */
   getForChat: protectedProcedure
     .input(getRulesForChatSchema)
-    .query(async ({ ctx, input }) => {
-      return ruleController.getForChat(ctx.session.user.id, input);
-    }),
+    .query(async ({ ctx, input }) =>
+      ruleController.getForChat(ctx.session.user.id, input)
+    ),
 
   /**
    * Get single rule by ID
    */
   getById: protectedProcedure
     .input(getRuleSchema)
-    .query(async ({ ctx, input }) => {
-      return ruleController.getById(ctx.session.user.id, input);
-    }),
+    .query(async ({ ctx, input }) =>
+      ruleController.getById(ctx.session.user.id, input)
+    ),
 
   /**
    * Create new rule
    */
   create: protectedProcedure
     .input(createRuleSchema)
-    .mutation(async ({ ctx, input }) => {
-      return ruleController.create(ctx.session.user.id, input);
-    }),
+    .mutation(async ({ ctx, input }) =>
+      ruleController.create(ctx.session.user.id, input)
+    ),
 
   // TODO: Add later
   // update: protectedProcedure.input(updateRuleSchema).mutation(...),

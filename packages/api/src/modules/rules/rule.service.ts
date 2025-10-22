@@ -1,13 +1,9 @@
 import { BaseService } from "../../common/base";
-import {
-  ValidationError,
-  NotFoundError,
-  RuleNotFoundError,
-} from "../../common/errors";
 import { RULE_LIMITS } from "../../common/constants";
-import type { RuleRepository } from "./rule.repository";
+import { RuleNotFoundError, ValidationError } from "../../common/errors";
 import type { CreateRuleInput } from "./rule.inputs";
-import type { RuleWithTags, RuleListResult } from "./rule.types";
+import type { RuleRepository } from "./rule.repository";
+import type { RuleListResult, RuleWithTags } from "./rule.types";
 
 /**
  * Rule Service
@@ -56,15 +52,17 @@ export class RuleService extends BaseService {
   /**
    * Create a new rule
    */
-  async create(
-    userId: string,
-    input: CreateRuleInput
-  ): Promise<RuleWithTags> {
+  async create(userId: string, input: CreateRuleInput): Promise<RuleWithTags> {
     // Validation
     this.validateRequired(input.name, "Rule name");
     this.validateRequired(input.content, "Rule content");
     this.validateLength(input.name, "Name", 1, 100);
-    this.validateLength(input.content, "Content", 1, RULE_LIMITS.MAX_RULE_LENGTH);
+    this.validateLength(
+      input.content,
+      "Content",
+      1,
+      RULE_LIMITS.MAX_RULE_LENGTH
+    );
 
     if (input.description) {
       this.validateLength(input.description, "Description", 0, 500);
@@ -73,7 +71,10 @@ export class RuleService extends BaseService {
     // Check limits
     const stats = await this.repository.getStats(userId);
 
-    if (input.scope === "GLOBAL" && stats.global >= RULE_LIMITS.MAX_RULES_GLOBAL) {
+    if (
+      input.scope === "GLOBAL" &&
+      stats.global >= RULE_LIMITS.MAX_RULES_GLOBAL
+    ) {
       throw new ValidationError(
         `Maximum ${RULE_LIMITS.MAX_RULES_GLOBAL} global rules allowed`
       );

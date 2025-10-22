@@ -34,8 +34,6 @@ import {
 import { Response } from "@/components/ai-elements/response";
 import { models } from "@/lib/utils";
 
-
-
 type ChatInterfaceProps = {
   chatId: string;
   user?: {

@@ -1,9 +1,6 @@
 import prisma from "@memora/db";
 import type { AttachmentKind, Prisma } from "@prisma/client";
-import type {
-  AttachmentMetadata,
-  ModelDescriptor,
-} from "./chat.types";
+import type { AttachmentMetadata, ModelDescriptor } from "./chat.types";
 
 type CreateChatWithMessageParams = {
   userId: string;

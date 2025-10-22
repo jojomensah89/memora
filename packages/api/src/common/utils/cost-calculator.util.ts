@@ -43,8 +43,8 @@ export function calculateCost(
   }
 
   // Costs are per 1M tokens, convert to actual cost
-  const inputCost = (inputTokens / 1000000) * costs.input;
-  const outputCost = (outputTokens / 1000000) * costs.output;
+  const inputCost = (inputTokens / 1_000_000) * costs.input;
+  const outputCost = (outputTokens / 1_000_000) * costs.output;
 
   return {
     inputTokens,

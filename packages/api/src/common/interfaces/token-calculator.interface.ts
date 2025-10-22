@@ -26,9 +26,5 @@ export interface ITokenCalculator {
   /**
    * Get full estimate (tokens + cost)
    */
-  getEstimate(
-    text: string,
-    provider: AIProvider,
-    model: string
-  ): TokenEstimate;
+  getEstimate(text: string, provider: AIProvider, model: string): TokenEstimate;
 }

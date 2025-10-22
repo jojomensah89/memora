@@ -1,7 +1,7 @@
 import { protectedProcedure, publicProcedure, router } from "../index";
 import { chatRouter } from "./chat";
-import { rulesRouter } from "./rules.router";
 import { contextEngineRouter } from "./context-engine.router";
+import { rulesRouter } from "./rules.router";
 
 /**
  * Main App Router

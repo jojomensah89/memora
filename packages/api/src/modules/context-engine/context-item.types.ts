@@ -1,4 +1,4 @@
-import type { ContextItem, ContextScope, ContextType, ContextTag } from "@prisma/client";
+import type { ContextItem, ContextTag, ContextType } from "@prisma/client";
 
 /**
  * Context Engine - Types

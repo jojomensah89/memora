@@ -1,6 +1,5 @@
 import { tool } from "ai";
 import { z } from "zod";
-import type { ToolContext } from "./types";
 
 /**
  * Rules Application Tool

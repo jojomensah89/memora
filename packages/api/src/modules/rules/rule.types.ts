@@ -1,4 +1,4 @@
-import type { Rule, RuleScope, RuleTag } from "@prisma/client";
+import type { Rule, RuleTag } from "@prisma/client";
 
 /**
  * Rules Module - Types

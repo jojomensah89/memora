@@ -1,12 +1,12 @@
 import { z } from "zod";
 import { protectedProcedure, router } from "../index";
 import { ChatController } from "../modules/chat/chat.controller";
-import { ChatRepository } from "../modules/chat/chat.repository";
-import { ChatService } from "../modules/chat/chat.service";
 import {
   createChatInputSchema,
   enhancePromptInputSchema,
 } from "../modules/chat/chat.inputs";
+import { ChatRepository } from "../modules/chat/chat.repository";
+import { ChatService } from "../modules/chat/chat.service";
 
 const chatRepository = new ChatRepository();
 const chatService = new ChatService(

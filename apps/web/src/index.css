@@ -217,4 +217,3 @@ body {
 [data-slot="input-group"] {
   @apply !bg-card dark:!bg-card;
 }
-

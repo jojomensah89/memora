@@ -144,26 +144,26 @@ export default function MagicLinkForm({
               {showNameField && (
                 <div>
                   <form.Field name="name">
-                  {(field) => (
-                    <div className="space-y-2">
-                      <Label htmlFor={field.name}>Name</Label>
-                      <Input
-                        disabled={form.state.isSubmitting}
-                        id={field.name}
-                        name={field.name}
-                        onBlur={field.handleBlur}
-                        onChange={(e) => field.handleChange(e.target.value)}
-                        placeholder="John Doe"
-                        type="text"
-                        value={field.state.value}
-                      />
-                      {field.state.meta.errors.map((error) => (
-                        <p className="text-red-500" key={error?.message}>
-                          {error?.message}
-                        </p>
-                      ))}
-                    </div>
-                  )}
+                    {(field) => (
+                      <div className="space-y-2">
+                        <Label htmlFor={field.name}>Name</Label>
+                        <Input
+                          disabled={form.state.isSubmitting}
+                          id={field.name}
+                          name={field.name}
+                          onBlur={field.handleBlur}
+                          onChange={(e) => field.handleChange(e.target.value)}
+                          placeholder="John Doe"
+                          type="text"
+                          value={field.state.value}
+                        />
+                        {field.state.meta.errors.map((error) => (
+                          <p className="text-red-500" key={error?.message}>
+                            {error?.message}
+                          </p>
+                        ))}
+                      </div>
+                    )}
                   </form.Field>
                 </div>
               )}

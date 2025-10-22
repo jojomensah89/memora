@@ -1,7 +1,7 @@
 import { BaseRepository } from "../../common/base";
 import { DatabaseError } from "../../common/errors";
-import type { ContextItemWithTags, ContextStats } from "./context-item.types";
 import type { CreateContextItemInput } from "./context-item.inputs";
+import type { ContextItemWithTags, ContextStats } from "./context-item.types";
 
 /**
  * Context Item Repository
@@ -112,7 +112,10 @@ export class ContextItemRepository extends BaseRepository<ContextItemWithTags> {
   /**
    * Promote context item from LOCAL to GLOBAL
    */
-  async promoteToGlobal(id: string, userId: string): Promise<ContextItemWithTags> {
+  async promoteToGlobal(
+    id: string,
+    userId: string
+  ): Promise<ContextItemWithTags> {
     try {
       return await this.prisma.contextItem.update({
         where: { id, userId },

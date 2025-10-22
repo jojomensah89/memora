@@ -1,11 +1,11 @@
 import { handleError } from "../../common/errors";
-import type { ContextItemService } from "./context-item.service";
 import type {
-  GetContextItemInput,
   GetContextForChatInput,
-  UploadFileInput,
+  GetContextItemInput,
   PromoteToGlobalInput,
+  UploadFileInput,
 } from "./context-item.inputs";
+import type { ContextItemService } from "./context-item.service";
 
 /**
  * Context Item Controller

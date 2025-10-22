@@ -1,8 +1,5 @@
+import type { CreateChatInput, EnhancePromptInput } from "./chat.inputs";
 import type { ChatService } from "./chat.service";
-import type {
-  CreateChatInput,
-  EnhancePromptInput,
-} from "./chat.inputs";
 
 type CreateChatControllerInput = {
   userId: string;

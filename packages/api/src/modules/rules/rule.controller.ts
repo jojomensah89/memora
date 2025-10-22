@@ -1,10 +1,10 @@
 import { handleError } from "../../common/errors";
-import type { RuleService } from "./rule.service";
 import type {
   CreateRuleInput,
   GetRuleInput,
   GetRulesForChatInput,
 } from "./rule.inputs";
+import type { RuleService } from "./rule.service";
 
 /**
  * Rule Controller

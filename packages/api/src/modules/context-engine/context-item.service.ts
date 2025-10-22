@@ -1,18 +1,25 @@
 import { BaseService } from "../../common/base";
+import { CONTEXT_LIMITS } from "../../common/constants";
 import {
-  ValidationError,
   ContextNotFoundError,
   PayloadTooLargeError,
+  ValidationError,
 } from "../../common/errors";
-import { CONTEXT_LIMITS, FILE_LIMITS } from "../../common/constants";
-import { estimateTokens } from "../../common/utils";
-import { validateFileSize, validateMimeType, validateFilename } from "../../common/utils";
-import type { ContextItemRepository } from "./context-item.repository";
+import {
+  estimateTokens,
+  validateFilename,
+  validateFileSize,
+  validateMimeType,
+} from "../../common/utils";
 import type {
   CreateContextItemInput,
   UploadFileInput,
 } from "./context-item.inputs";
-import type { ContextItemWithTags, ContextListResult } from "./context-item.types";
+import type { ContextItemRepository } from "./context-item.repository";
+import type {
+  ContextItemWithTags,
+  ContextListResult,
+} from "./context-item.types";
 
 /**
  * Context Item Service

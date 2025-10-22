@@ -1,7 +1,7 @@
-import type { AIProvider } from "@prisma/client";
 import { anthropic } from "@ai-sdk/anthropic";
 import { google } from "@ai-sdk/google";
 import { openai } from "@ai-sdk/openai";
+import type { AIProvider } from "@prisma/client";
 import { experimental_createModelAPIAgent as createModelAPIAgent } from "ai";
 import { InvalidModelError } from "../common/errors";
 
@@ -57,11 +57,11 @@ export class AgentFactory {
       throw new InvalidModelError(`No default model for provider: ${provider}`);
     }
 
-    return this.getAgent(provider, model);
+    return AgentFactory.getAgent(provider, model);
   }
 }
 
 // Re-export individual agents for direct use
 export { claudeAgent, claudeHaikuAgent } from "./claude.agent";
-export { geminiAgent, geminiProAgent, geminiFlashAgent } from "./gemini.agent";
+export { geminiAgent, geminiFlashAgent, geminiProAgent } from "./gemini.agent";
 export { openaiAgent, openaiMiniAgent } from "./openai.agent";

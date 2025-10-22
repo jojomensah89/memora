@@ -1,7 +1,7 @@
-import { TRPCError } from "@trpc/server";
-import { AppError } from "./base.error";
 import { Prisma } from "@prisma/client";
+import { TRPCError } from "@trpc/server";
 import { ZodError } from "zod";
+import { AppError } from "./base.error";
 
 /**
  * Central Error Handler
@@ -60,9 +60,7 @@ export function handleError(error: unknown): never {
 /**
  * Handle Prisma-specific errors
  */
-function handlePrismaError(
-  error: Prisma.PrismaClientKnownRequestError
-): never {
+function handlePrismaError(error: Prisma.PrismaClientKnownRequestError): never {
   switch (error.code) {
     case "P2002": // Unique constraint violation
       throw new TRPCError({

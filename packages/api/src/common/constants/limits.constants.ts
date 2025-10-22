@@ -13,20 +13,20 @@ export const FILE_LIMITS = {
 export const CONTEXT_LIMITS = {
   MAX_CONTEXT_ITEMS_PER_CHAT: 50,
   MAX_CONTEXT_SIZE: 100 * 1024, // 100KB per item
-  MAX_TOKEN_COUNT: 100000, // Max tokens per context item
+  MAX_TOKEN_COUNT: 100_000, // Max tokens per context item
 } as const;
 
 // Rules Limits
 export const RULE_LIMITS = {
   MAX_RULES_PER_CHAT: 20,
-  MAX_RULE_LENGTH: 10000, // characters
+  MAX_RULE_LENGTH: 10_000, // characters
   MAX_RULES_GLOBAL: 50,
 } as const;
 
 // Chat Limits
 export const CHAT_LIMITS = {
   MAX_TITLE_LENGTH: 100,
-  MAX_MESSAGE_LENGTH: 50000,
+  MAX_MESSAGE_LENGTH: 50_000,
   MAX_MESSAGES_PER_CHAT: 1000,
 } as const;
 
@@ -46,6 +46,6 @@ export const RATE_LIMITS = {
 
 // Token Limits (monthly)
 export const TOKEN_LIMITS = {
-  DEFAULT_USER_LIMIT: 1000000, // 1M tokens
-  DEFAULT_ORG_LIMIT: 10000000, // 10M tokens
+  DEFAULT_USER_LIMIT: 1_000_000, // 1M tokens
+  DEFAULT_ORG_LIMIT: 10_000_000, // 10M tokens
 } as const;

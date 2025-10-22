@@ -1,5 +1,5 @@
-import { ValidationError } from "../errors";
 import { FILE_LIMITS } from "../constants";
+import { ValidationError } from "../errors";
 
 /**
  * File Validation Utilities
@@ -71,7 +71,11 @@ export function validateFilename(filename: string): void {
   }
 
   // Check for path traversal attempts
-  if (filename.includes("..") || filename.includes("/") || filename.includes("\\")) {
+  if (
+    filename.includes("..") ||
+    filename.includes("/") ||
+    filename.includes("\\")
+  ) {
     throw new ValidationError("Invalid filename");
   }
 

@@ -41,7 +41,7 @@ export const GL = ({ hovering }: { hovering: boolean }) => {
     manualTime: { value: 0, min: 0, max: 50, step: 0.01 },
   });
   return (
-    <div id="webgl" className="h-full w-full">
+    <div className="h-full w-full" id="webgl">
       <Canvas
         camera={{
           position: [

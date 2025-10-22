@@ -1,6 +1,5 @@
 import { tool } from "ai";
 import { z } from "zod";
-import type { ToolContext } from "./types";
 
 /**
  * Context Injection Tool
@@ -11,7 +10,7 @@ import type { ToolContext } from "./types";
 export const contextInjectionTool = tool({
   description: `Access user's context items (files, documents, code) for reference.
 Use this when you need to reference uploaded content, documentation, or any context the user has shared.`,
-  
+
   parameters: z.object({
     query: z
       .string()
@@ -40,15 +39,15 @@ export function formatContextForPrompt(
   }
 
   const formatted = contextItems
-    .map((item) => {
-      return `
+    .map(
+      (item) => `
 ## Context: ${item.name} (${item.type})
 
 ${item.content}
 
 ---
-`;
-    })
+`
+    )
     .join("\n");
 
   return `

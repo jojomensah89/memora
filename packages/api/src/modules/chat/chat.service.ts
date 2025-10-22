@@ -1,11 +1,11 @@
-import { TRPCError } from "@trpc/server";
 import type { AttachmentKind } from "@prisma/client";
-import type { ChatRepository } from "./chat.repository";
+import { TRPCError } from "@trpc/server";
 import type {
   AttachmentInput,
   CreateChatInput,
   EnhancePromptInput,
 } from "./chat.inputs";
+import type { ChatRepository } from "./chat.repository";
 import type {
   CreateChatResult,
   EnhancePromptResult,
@@ -47,17 +47,14 @@ export class ChatService {
     return this.repository.listModels();
   }
 
-  private assertModelSupportsWebSearch(
-    modelId: string,
-    useWebSearch: boolean
-  ) {
+  private assertModelSupportsWebSearch(modelId: string, useWebSearch: boolean) {
     if (!useWebSearch) {
       return;
     }
     const model = this.repository
       .listModels()
       .find((item) => item.id === modelId);
-    if (!model || !model.supportsWebSearch) {
+    if (!(model && model.supportsWebSearch)) {
       throw new TRPCError({
         code: "BAD_REQUEST",
         message: "Selected model does not support web search",
@@ -197,9 +194,7 @@ export class ChatService {
       : trimmed;
   }
 
-  private async normalizeAttachments(
-    attachments: AttachmentInput[]
-  ): Promise<
+  private async normalizeAttachments(attachments: AttachmentInput[]): Promise<
     {
       kind: AttachmentKind;
       filename: string;
