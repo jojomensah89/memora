@@ -89,10 +89,72 @@ export class RuleService extends BaseService {
     return this.repository.create(userId, input);
   }
 
-  // TODO: Implement later
-  // - update()
-  // - delete()
-  // - toggleActive()
-  // - addTags()
-  // - removeTags()
+  async update(userId: string, id: string, input: Partial<CreateRuleInput>) {
+    const rule = await this.repository.findById(id, userId);
+    if (!rule) {
+      throw new RuleNotFoundError("Rule not found");
+    }
+
+    // Validate content if provided
+    if (input.content) {
+      this.validateLength(
+        input.content,
+        "Content",
+        1,
+        RULE_LIMITS.MAX_RULE_LENGTH
+      );
+    }
+
+    // Validate description if provided
+    if (input.description) {
+      this.validateLength(input.description, "Description", 0, 500);
+    }
+
+    return await this.repository.update(id, userId, input);
+  }
+
+  async delete(userId: string, id: string) {
+    const rule = await this.repository.findById(id, userId);
+    if (!rule) {
+      throw new RuleNotFoundError("Rule not found");
+    }
+
+    await this.repository.delete(id, userId);
+  }
+
+  async toggleActive(userId: string, id: string) {
+    const rule = await this.repository.findById(id, userId);
+    if (!rule) {
+      throw new RuleNotFoundError("Rule not found");
+    }
+
+    return await this.repository.toggleActive(id, userId);
+  }
+
+  async linkToChat(userId: string, ruleId: string, chatId: string) {
+    const rule = await this.repository.findById(ruleId, userId);
+    if (!rule) {
+      throw new RuleNotFoundError("Rule not found");
+    }
+
+    // Verify chat ownership
+    const chat = await this.prisma.chat.findFirst({
+      where: { id: chatId, userId },
+    });
+
+    if (!chat) {
+      throw new ValidationError("Chat not found or access denied");
+    }
+
+    await this.repository.linkToChat(ruleId, chatId, userId);
+  }
+
+  async unlinkFromChat(userId: string, ruleId: string, chatId: string) {
+    const rule = await this.repository.findById(ruleId, userId);
+    if (!rule) {
+      throw new RuleNotFoundError("Rule not found");
+    }
+
+    await this.repository.unlinkFromChat(ruleId, chatId, userId);
+  }
 }

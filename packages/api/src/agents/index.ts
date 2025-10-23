@@ -1,4 +1,3 @@
-import { anthropic } from "@ai-sdk/anthropic";
 import { google } from "@ai-sdk/google";
 import { openai } from "@ai-sdk/openai";
 import type { AIProvider } from "@prisma/client";
@@ -62,6 +61,5 @@ export class AgentFactory {
 }
 
 // Re-export individual agents for direct use
-export { claudeAgent, claudeHaikuAgent } from "./claude.agent";
 export { geminiAgent, geminiFlashAgent, geminiProAgent } from "./gemini.agent";
 export { openaiAgent, openaiMiniAgent } from "./openai.agent";

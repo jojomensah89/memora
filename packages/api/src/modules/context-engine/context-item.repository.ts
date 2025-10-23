@@ -98,9 +98,22 @@ export class ContextItemRepository extends BaseRepository<ContextItemWithTags> {
           type: data.type,
           content: data.content,
           rawContent: data.rawContent,
+          size: data.size,
           scope: data.scope,
           metadata: data.metadata as any,
-          // TODO: Handle tags and chat linking
+          tags: data.tags?.length
+            ? {
+                create: data.tags.map(tag => ({ name: tag })),
+              }
+            : undefined,
+          chatLinks: data.chatId && data.scope === "LOCAL"
+            ? {
+                create: {
+                  chatId: data.chatId,
+                  isSelected: true,
+                },
+              }
+            : undefined,
         },
         include: { tags: true },
       });
@@ -166,9 +179,95 @@ export class ContextItemRepository extends BaseRepository<ContextItemWithTags> {
     }
   }
 
-  // TODO: Implement later
-  // - update()
-  // - delete()
-  // - linkToChat()
-  // - unlinkFromChat()
+  /**
+   * Update an existing context item
+   */
+  async update(
+    id: string,
+    userId: string,
+    data: Partial<CreateContextItemInput>
+  ): Promise<ContextItemWithTags> {
+    try {
+      // Remove chat links from main update as they need special handling
+      const updateData: any = { ...data };
+      delete updateData.chatId;
+      delete updateData.tags;
+
+      return await this.prisma.contextItem.update({
+        where: { id, userId },
+        data: updateData,
+        include: { tags: true },
+      });
+    } catch (error) {
+      throw new DatabaseError("Failed to update context item", error);
+    }
+  }
+
+  /**
+   * Delete a context item
+   */
+  async delete(id: string, userId: string): Promise<void> {
+    try {
+      await this.prisma.contextItem.deleteMany({
+        where: { id, userId },
+      });
+    } catch (error) {
+      throw new DatabaseError("Failed to delete context item", error);
+    }
+  }
+
+  /**
+   * Link context item to a chat (for LOCAL context items)
+   */
+  async linkToChat(
+    contextId: string,
+    chatId: string,
+    userId: string
+  ): Promise<void> {
+    try {
+      // Verify context item belongs to user
+      const context = await this.prisma.contextItem.findFirst({
+        where: { id: contextId, userId },
+      });
+
+      if (!context) {
+        throw new Error("Context item not found");
+      }
+
+      if (context.scope !== "LOCAL") {
+        throw new Error("Only LOCAL context items can be linked to chats");
+      }
+
+      await this.prisma.chatContextLink.create({
+        data: {
+          contextId,
+          chatId,
+          isSelected: true,
+        },
+      });
+    } catch (error) {
+      throw new DatabaseError("Failed to link context item to chat", error);
+    }
+  }
+
+  /**
+   * Unlink context item from a chat
+   */
+  async unlinkFromChat(
+    contextId: string,
+    chatId: string,
+    userId: string
+  ): Promise<void> {
+    try {
+      await this.prisma.chatContextLink.deleteMany({
+        where: {
+          contextId,
+          chatId,
+          context: { userId },
+        },
+      });
+    } catch (error) {
+      throw new DatabaseError("Failed to unlink context item from chat", error);
+    }
+  }
 }

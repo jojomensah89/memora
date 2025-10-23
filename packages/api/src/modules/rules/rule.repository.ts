@@ -90,7 +90,11 @@ export class RuleRepository extends BaseRepository<RuleWithTags> {
           content: data.content,
           scope: data.scope,
           isActive: data.isActive,
-          // TODO: Handle tags creation
+          tags: data.tags?.length
+            ? {
+                create: data.tags.map(tag => ({ name: tag })),
+              }
+            : undefined,
         },
         include: { tags: true },
       });
@@ -111,20 +115,132 @@ export class RuleRepository extends BaseRepository<RuleWithTags> {
 
       return {
         total: rules.length,
-        global: rules.filter((r) => r.scope === "GLOBAL").length,
-        local: rules.filter((r) => r.scope === "LOCAL").length,
-        active: rules.filter((r) => r.isActive).length,
-        inactive: rules.filter((r) => !r.isActive).length,
+        global: rules.filter((r: { scope: string; }) => r.scope === "GLOBAL").length,
+        local: rules.filter((r: { scope: string; }) => r.scope === "LOCAL").length,
+        active: rules.filter((r: { isActive: boolean; }) => r.isActive).length,
+        inactive: rules.filter((r: { isActive: boolean; }) => !r.isActive).length,
       };
     } catch (error) {
       throw new DatabaseError("Failed to get rule stats", error);
     }
   }
 
-  // TODO: Implement later
-  // - update()
-  // - delete()
-  // - toggleActive()
-  // - linkToChat()
-  // - unlinkFromChat()
+  /**
+   * Update an existing rule
+   */
+  async update(
+    id: string,
+    userId: string,
+    data: Partial<CreateRuleInput>
+  ): Promise<RuleWithTags> {
+    try {
+      // Handle tags update
+      const updateData: any = {
+        ...data,
+      };
+
+      // Remove tags from main update as they need special handling
+      delete updateData.tags;
+
+      return await this.prisma.rule.update({
+        where: { id, userId },
+        data: updateData,
+        include: { tags: true },
+      });
+    } catch (error) {
+      throw new DatabaseError("Failed to update rule", error);
+    }
+  }
+
+  /**
+   * Delete a rule
+   */
+  async delete(id: string, userId: string): Promise<void> {
+    try {
+      await this.prisma.rule.deleteMany({
+        where: { id, userId },
+      });
+    } catch (error) {
+      throw new DatabaseError("Failed to delete rule", error);
+    }
+  }
+
+  /**
+   * Toggle rule active status
+   */
+  async toggleActive(id: string, userId: string): Promise<RuleWithTags> {
+    try {
+      const rule = await this.prisma.rule.findFirst({
+        where: { id, userId },
+        select: { isActive: true },
+      });
+
+      if (!rule) {
+        throw new Error("Rule not found");
+      }
+
+      return await this.prisma.rule.update({
+        where: { id, userId },
+        data: { isActive: !rule.isActive },
+        include: { tags: true },
+      });
+    } catch (error) {
+      throw new DatabaseError("Failed to toggle rule", error);
+    }
+  }
+
+  /**
+   * Link rule to a chat (for LOCAL rules)
+   */
+  async linkToChat(
+    ruleId: string,
+    chatId: string,
+    userId: string
+  ): Promise<void> {
+    try {
+      // Verify rule belongs to user
+      const rule = await this.prisma.rule.findFirst({
+        where: { id: ruleId, userId },
+      });
+
+      if (!rule) {
+        throw new Error("Rule not found");
+      }
+
+      if (rule.scope !== "LOCAL") {
+        throw new Error("Only LOCAL rules can be linked to chats");
+      }
+
+      await this.prisma.chatRuleLink.create({
+        data: {
+          ruleId,
+          chatId,
+          isActive: true,
+        },
+      });
+    } catch (error) {
+      throw new DatabaseError("Failed to link rule to chat", error);
+    }
+  }
+
+  /**
+   * Unlink rule from a chat
+   */
+  async unlinkFromChat(
+    ruleId: string,
+    chatId: string,
+    userId: string
+  ): Promise<void> {
+    try {
+      await this.prisma.chatRuleLink.deleteMany({
+        where: {
+          ruleId,
+          chatId,
+          rule: { userId },
+        },
+      });
+    } catch (error) {
+      throw new DatabaseError("Failed to unlink rule from chat", error);
+    }
+  }
 }

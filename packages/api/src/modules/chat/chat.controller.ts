@@ -1,57 +1,69 @@
-import type { CreateChatInput, EnhancePromptInput } from "./chat.inputs";
+import { handleError } from "../../common/errors";
+import type {
+  CreateChatInput,
+  EnhancePromptInput,
+  ForkChatInput,
+  GetChatInput,
+  ListChatsInput,
+} from "./chat.inputs";
 import type { ChatService } from "./chat.service";
 
-type CreateChatControllerInput = {
-  userId: string;
-  input: CreateChatInput;
-};
-
-type ListChatsInput = {
-  userId: string;
-  includeArchived: boolean;
-  limit: number;
-  cursor?: string;
-};
-
-type GetChatInput = {
-  id: string;
-  userId: string;
-};
-
-type EnhancePromptControllerInput = {
-  userId: string;
-  input: EnhancePromptInput;
-};
-
 export class ChatController {
-  private readonly chatService: ChatService;
+  constructor(private service: ChatService) {}
 
-  constructor(chatService: ChatService) {
-    this.chatService = chatService;
+  async createChat(userId: string, input: CreateChatInput) {
+    try {
+      return await this.service.createChat(userId, input);
+    } catch (error) {
+      handleError(error);
+    }
   }
 
-  createChat({ userId, input }: CreateChatControllerInput) {
-    return this.chatService.createChat(userId, input);
+  async listChats(userId: string, input: ListChatsInput) {
+    try {
+      return await this.service.listUserChats(userId, input);
+    } catch (error) {
+      handleError(error);
+    }
   }
 
-  listChats({ userId, includeArchived, limit, cursor }: ListChatsInput) {
-    return this.chatService.listUserChats(
-      userId,
-      includeArchived,
-      limit,
-      cursor
-    );
-  }
-
-  getChat({ id, userId }: GetChatInput) {
-    return this.chatService.getChatById(id, userId);
+  async getChat(userId: string, input: GetChatInput) {
+    try {
+      return await this.service.getChatById(input.id, userId);
+    } catch (error) {
+      handleError(error);
+    }
   }
 
   getModels() {
-    return this.chatService.getAvailableModels();
+    try {
+      return this.service.getAvailableModels();
+    } catch (error) {
+      handleError(error);
+    }
   }
 
-  enhancePrompt({ userId, input }: EnhancePromptControllerInput) {
-    return this.chatService.enhancePrompt(userId, input);
+  async enhancePrompt(userId: string, input: EnhancePromptInput) {
+    try {
+      return await this.service.enhancePrompt(userId, input);
+    } catch (error) {
+      handleError(error);
+    }
+  }
+
+  async forkChat(userId: string, input: ForkChatInput) {
+    try {
+      return await this.service.forkChat(userId, input);
+    } catch (error) {
+      handleError(error);
+    }
+  }
+
+  async generateAIResponse(userId: string, chatId: string, message: string) {
+    try {
+      return await this.service.generateAIResponse(userId, chatId, message);
+    } catch (error) {
+      handleError(error);
+    }
   }
 }

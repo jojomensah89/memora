@@ -1,3 +1,4 @@
+/** biome-ignore-all lint/style/noMagicNumbers: <explanation> */
 import { z } from "zod";
 
 /**

@@ -1,22 +1,36 @@
-import prisma from "@memora/db";
-import type { AttachmentKind, Prisma } from "@prisma/client";
-import type { AttachmentMetadata, ModelDescriptor } from "./chat.types";
+import type { AIProvider, AttachmentKind, Chat, Prisma } from "@prisma/client";
+import { BaseRepository } from "../../common/base";
+import { AVAILABLE_MODELS } from "../../common/constants";
+import { DatabaseError } from "../../common/errors";
+import type {
+  AttachmentMetadata,
+  ChatListItem,
+  ChatListResult,
+  ChatWithMessages,
+  ModelDescriptor,
+} from "./chat.types";
+
+export type CreateChatAttachmentData = {
+  kind: AttachmentKind;
+  filename: string;
+  mimeType: string;
+  size: number;
+  storageKey: string;
+  transcription?: string | null;
+  metadata?: Prisma.InputJsonValue;
+};
 
 type CreateChatWithMessageParams = {
   userId: string;
   title: string;
   initialMessage: string;
+  provider: AIProvider;
   modelId: string;
   useWebSearch: boolean;
-  attachments: {
-    kind: AttachmentKind;
-    filename: string;
-    mimeType: string;
-    size: number;
-    storageKey: string;
-    transcription?: string | null;
-    metadata?: Prisma.InputJsonValue;
-  }[];
+  parentId?: string;
+  forkedFromMessageId?: string;
+  attachments: CreateChatAttachmentData[];
+  metadata?: Prisma.InputJsonValue;
 };
 
 type FindChatsParams = {
@@ -26,58 +40,77 @@ type FindChatsParams = {
   cursor?: string;
 };
 
-export class ChatRepository {
-  createChatWithMessage({
+export class ChatRepository extends BaseRepository<ChatWithMessages> {
+  async createChatWithMessage({
     userId,
     title,
     initialMessage,
+    provider,
     modelId,
     useWebSearch,
+    parentId,
+    forkedFromMessageId,
     attachments,
-  }: CreateChatWithMessageParams) {
-    return prisma.$transaction(async (tx) => {
-      const chat = await tx.chat.create({
+    metadata,
+  }: CreateChatWithMessageParams): Promise<ChatWithMessages> {
+    try {
+      return await this.prisma.chat.create({
         data: {
-          title,
           userId,
-          metadata: {
-            modelId,
-            useWebSearch,
-          },
+          title,
+          provider,
+          model: modelId,
+          parentId,
+          forkedFromMessageId,
+          metadata:
+            metadata ??
+            ({
+              modelId,
+              provider,
+              useWebSearch,
+              parentId,
+              forkedFromMessageId,
+            } as Prisma.InputJsonValue),
           messages: {
             create: {
               content: initialMessage,
               role: "user",
               metadata: {
                 modelId,
-              },
+                provider,
+                useWebSearch,
+                parentId,
+                forkedFromMessageId,
+              } as Prisma.InputJsonValue,
+              parentMessageId: forkedFromMessageId,
+              attachments: attachments.length
+                ? {
+                    create: attachments.map((attachment) => ({
+                      kind: attachment.kind,
+                      filename: attachment.filename,
+                      mimeType: attachment.mimeType,
+                      size: attachment.size,
+                      storageKey: attachment.storageKey,
+                      transcription: attachment.transcription,
+                      metadata: attachment.metadata,
+                    })),
+                  }
+                : undefined,
             },
           },
         },
         include: {
           messages: {
             orderBy: { createdAt: "asc" },
+            include: {
+              attachments: true,
+            },
           },
         },
       });
-
-      const firstMessage = chat.messages[0];
-
-      if (!firstMessage) {
-        throw new Error("Failed to create initial message for chat");
-      }
-
-      if (attachments.length > 0) {
-        await tx.attachment.createMany({
-          data: attachments.map((attachment) => ({
-            ...attachment,
-            messageId: firstMessage.id,
-          })),
-        });
-      }
-
-      return chat;
-    });
+    } catch (error) {
+      throw new DatabaseError("Failed to create chat", error);
+    }
   }
 
   async findChatsByUser({
@@ -85,84 +118,181 @@ export class ChatRepository {
     includeArchived,
     limit,
     cursor,
-  }: FindChatsParams) {
-    const chats = await prisma.chat.findMany({
-      where: {
-        userId,
-        isArchived: includeArchived ? undefined : false,
-      },
-      take: limit + 1,
-      cursor: cursor ? { id: cursor } : undefined,
-      orderBy: [{ isPinned: "desc" }, { updatedAt: "desc" }],
-      include: {
-        messages: {
-          take: 1,
-          orderBy: { createdAt: "desc" },
-          include: {
-            attachments: true,
+  }: FindChatsParams): Promise<ChatListResult> {
+    try {
+      const chats = await this.prisma.chat.findMany({
+        where: {
+          userId,
+          isArchived: includeArchived ? undefined : false,
+        },
+        take: limit + 1,
+        cursor: cursor ? { id: cursor } : undefined,
+        orderBy: [{ isPinned: "desc" }, { updatedAt: "desc" }],
+        include: {
+          messages: {
+            take: 1,
+            orderBy: { createdAt: "desc" },
+            include: {
+              attachments: true,
+            },
+          },
+          _count: {
+            select: { messages: true },
           },
         },
-        _count: {
-          select: { messages: true },
-        },
-      },
-    });
+      });
 
-    let nextCursor: string | undefined;
-    if (chats.length > limit) {
-      const nextItem = chats.pop();
-      nextCursor = nextItem?.id;
+      let nextCursor: string | undefined;
+      if (chats.length > limit) {
+        const nextItem = chats.pop();
+        nextCursor = nextItem?.id;
+      }
+
+      const items: ChatListItem[] = chats.map((chat) => {
+        const { messages, _count, ...chatData } = chat;
+        return {
+          ...(chatData as Chat),
+          lastMessage: messages[0] ?? null,
+          messageCount: _count.messages,
+        };
+      });
+
+      return { chats: items, nextCursor };
+    } catch (error) {
+      throw new DatabaseError("Failed to fetch chats", error);
     }
-
-    return { chats, nextCursor };
   }
 
-  findChatById(id: string, userId: string) {
-    return prisma.chat.findUnique({
-      where: { id, userId },
-      include: {
-        messages: {
-          orderBy: { createdAt: "asc" },
-          include: {
-            attachments: true,
+  async findChatById(
+    id: string,
+    userId: string
+  ): Promise<ChatWithMessages | null> {
+    try {
+      return await this.prisma.chat.findFirst({
+        where: { id, userId },
+        include: {
+          messages: {
+            orderBy: { createdAt: "asc" },
+            include: {
+              attachments: true,
+            },
           },
         },
-      },
-    });
+      });
+    } catch (error) {
+      throw new DatabaseError("Failed to fetch chat", error);
+    }
+  }
+
+  async forkChat(
+    originalChatId: string,
+    userId: string,
+    title: string,
+    forkedFromMessageId: string
+  ): Promise<ChatWithMessages> {
+    try {
+      // Get the original chat and verify ownership
+      const originalChat = await this.findChatById(originalChatId, userId);
+      if (!originalChat) {
+        throw new Error("Original chat not found");
+      }
+
+      // Get the message to fork from
+      const forkFromMessage = originalChat.messages.find(
+        (msg) => msg.id === forkedFromMessageId
+      );
+      if (!forkFromMessage) {
+        throw new Error("Fork message not found");
+      }
+
+      // Create new chat with forked messages up to the fork point
+      const forkedMessages = originalChat.messages.filter(
+        (msg) => msg.createdAt <= forkFromMessage.createdAt
+      );
+
+      const newChat = await this.prisma.chat.create({
+        data: {
+          userId,
+          title: title || `Fork of ${originalChat.title}`,
+          provider: originalChat.provider,
+          model: originalChat.model,
+          parentId: originalChatId,
+          forkedFromMessageId,
+          metadata: {
+            modelId: originalChat.model,
+            provider: originalChat.provider,
+            parentId: originalChatId,
+            forkedFromMessageId,
+          } as Prisma.InputJsonValue,
+          messages: {
+            create: forkedMessages.map((msg) => ({
+              content: msg.content,
+              role: msg.role,
+              metadata: msg.metadata,
+              parentMessageId: msg.parentMessageId,
+              attachments: msg.attachments.length
+                ? {
+                    create: msg.attachments.map((att) => ({
+                      kind: att.kind,
+                      filename: att.filename,
+                      mimeType: att.mimeType,
+                      size: att.size,
+                      storageKey: att.storageKey,
+                      transcription: att.transcription,
+                      metadata: att.metadata,
+                    })),
+                  }
+                : undefined,
+            })),
+          },
+        },
+        include: {
+          messages: {
+            orderBy: { createdAt: "asc" },
+            include: {
+              attachments: true,
+            },
+          },
+        },
+      });
+
+      return newChat;
+    } catch (error) {
+      throw new DatabaseError("Failed to fork chat", error);
+    }
   }
 
   listModels(): ModelDescriptor[] {
-    // TODO: Move to persistent storage or configuration service
-    return [
-      {
-        id: "gpt-4o",
-        name: "GPT-4o",
-        provider: "openai",
-        supportsWebSearch: true,
-      },
-      {
-        id: "claude-opus-4-20250514",
-        name: "Claude 4 Opus",
-        provider: "anthropic",
-        supportsWebSearch: false,
-      },
-    ];
+    return AVAILABLE_MODELS.map((model) => ({
+      ...model,
+      supportsWebSearch: model.provider !== "CLAUDE",
+    }));
   }
 
   async listAttachmentsByChat(chatId: string): Promise<AttachmentMetadata[]> {
-    const attachments = await prisma.attachment.findMany({
-      where: { message: { chatId } },
-      orderBy: { createdAt: "asc" },
-    });
+    try {
+      const attachments = await this.prisma.attachment.findMany({
+        where: { message: { chatId } },
+        orderBy: { createdAt: "asc" },
+      });
 
-    return attachments.map((attachment) => ({
-      id: attachment.id,
-      kind: attachment.kind,
-      filename: attachment.filename,
-      mimeType: attachment.mimeType,
-      size: attachment.size,
-      transcription: attachment.transcription,
-      url: undefined,
-    }));
+      return attachments.map((attachment) => ({
+        id: attachment.id,
+        kind: attachment.kind,
+        filename: attachment.filename,
+        mimeType: attachment.mimeType,
+        size: attachment.size,
+        storageKey: attachment.storageKey,
+        transcription: attachment.transcription,
+        metadata:
+          attachment.metadata &&
+          typeof attachment.metadata === "object" &&
+          !Array.isArray(attachment.metadata)
+            ? (attachment.metadata as Record<string, unknown>)
+            : undefined,
+      }));
+    } catch (error) {
+      throw new DatabaseError("Failed to fetch attachments", error);
+    }
   }
 }

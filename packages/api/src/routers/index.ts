@@ -1,7 +1,10 @@
 import { protectedProcedure, publicProcedure, router } from "../index";
 import { chatRouter } from "./chat";
+import { chatShareRouter } from "./chat-share";
 import { contextEngineRouter } from "./context-engine.router";
+import { messageRouter } from "./message";
 import { rulesRouter } from "./rules.router";
+import { tokenUsageRouter } from "./token-usage";
 
 /**
  * Main App Router
@@ -22,13 +25,11 @@ export const appRouter = router({
 
   // Feature routers
   chat: chatRouter,
+  message: messageRouter,
+  chatShare: chatShareRouter,
+  tokenUsage: tokenUsageRouter,
   rules: rulesRouter,
   contextEngine: contextEngineRouter,
-
-  // TODO: Add more routers
-  // message: messageRouter,
-  // chatShare: chatShareRouter,
-  // tokenUsage: tokenUsageRouter,
 });
 
 export type AppRouter = typeof appRouter;

@@ -11,7 +11,7 @@ export abstract class BaseService {
   protected validateRequired(
     value: unknown,
     fieldName: string
-  ): asserts value is NonNullable<typeof value> {
+  ): asserts value is NonNullable<unknown> {
     if (value === null || value === undefined || value === "") {
       throw new ValidationError(`${fieldName} is required`);
     }

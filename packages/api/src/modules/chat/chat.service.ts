@@ -1,187 +1,322 @@
-import type { AttachmentKind } from "@prisma/client";
-import { TRPCError } from "@trpc/server";
+import type { Prisma } from "@prisma/client";
+import { BaseService } from "../../common/base";
+import {
+  CHAT_LIMITS,
+  FILE_LIMITS,
+  PAGINATION_LIMITS,
+} from "../../common/constants";
+import { getModelConfig } from "../../common/constants/models.constants";
+import {
+  ChatNotFoundError,
+  InvalidModelError,
+  PayloadTooLargeError,
+  ValidationError,
+} from "../../common/errors";
+import {
+  validateFileArray,
+  validateFilename,
+  validateFileSize,
+  validateMimeType,
+} from "../../common/utils";
+import type { ContextItem } from "../context-engine/context-item.types";
+import type { Rule } from "../rules/rule.types";
 import type {
   AttachmentInput,
   CreateChatInput,
   EnhancePromptInput,
+  ForkChatInput,
+  ListChatsInput,
 } from "./chat.inputs";
-import type { ChatRepository } from "./chat.repository";
+import type {
+  ChatRepository,
+  CreateChatAttachmentData,
+} from "./chat.repository";
 import type {
   CreateChatResult,
   EnhancePromptResult,
   ModelDescriptor,
 } from "./chat.types";
+import { ChatStreamService } from "./chat-stream.service";
 
-const DEFAULT_TITLE_LENGTH = 50;
-const MAX_ATTACHMENTS = 10;
-const MAX_TOTAL_ATTACHMENT_SIZE = 25 * 1024 * 1024; // 25MB TODO move to config
-
-type StorageAdapter = {
-  resolveStorageKey: (uploadId: string, filename: string) => Promise<string>;
-};
+type PromptEnhancerResult = Pick<
+  EnhancePromptResult,
+  "enhancedText" | "useWebSearchApplied" | "suggestions"
+>;
 
 type PromptEnhancer = {
   enhance: (
     input: EnhancePromptInput & {
       context?: unknown;
     }
-  ) => Promise<EnhancePromptResult>;
+  ) => Promise<PromptEnhancerResult>;
 };
 
-export class ChatService {
-  private readonly repository: ChatRepository;
-  private readonly storageAdapter: StorageAdapter;
-  private readonly enhancer: PromptEnhancer;
-
+export class ChatService extends BaseService {
   constructor(
-    repository: ChatRepository,
-    storageAdapter: StorageAdapter,
-    enhancer: PromptEnhancer
+    private repository: ChatRepository,
+    private enhancer?: PromptEnhancer,
+    private contextService?: any,
+    private rulesService?: any
   ) {
-    this.repository = repository;
-    this.storageAdapter = storageAdapter;
-    this.enhancer = enhancer;
+    super();
   }
 
   getAvailableModels(): ModelDescriptor[] {
     return this.repository.listModels();
   }
 
-  private assertModelSupportsWebSearch(modelId: string, useWebSearch: boolean) {
-    if (!useWebSearch) {
-      return;
-    }
-    const model = this.repository
-      .listModels()
-      .find((item) => item.id === modelId);
-    if (!(model && model.supportsWebSearch)) {
-      throw new TRPCError({
-        code: "BAD_REQUEST",
-        message: "Selected model does not support web search",
-      });
-    }
-  }
-
   async createChat(
     userId: string,
-    { initialMessage, modelId, useWebSearch, attachments }: CreateChatInput
+    input: CreateChatInput
   ): Promise<CreateChatResult> {
-    const trimmedMessage = initialMessage?.trim() ?? "";
-    if (!trimmedMessage && attachments.length === 0) {
-      throw new TRPCError({
-        code: "BAD_REQUEST",
-        message: "Provide a message or at least one attachment",
+    const message = input.initialMessage?.trim() ?? "";
+    const attachments = input.attachments ?? [];
+
+    if (!message && attachments.length === 0) {
+      throw new ValidationError("Provide a message or at least one attachment");
+    }
+
+    if (message) {
+      this.validateLength(
+        message,
+        "Initial message",
+        1,
+        CHAT_LIMITS.MAX_MESSAGE_LENGTH
+      );
+    }
+
+    if (attachments.length > 0) {
+      validateFileArray(attachments.map(({ size }) => ({ size })));
+      attachments.forEach((attachment) => {
+        validateFilename(attachment.name);
+        validateFileSize(attachment.size);
+        validateMimeType(attachment.mimeType);
       });
     }
 
-    this.assertModelSupportsWebSearch(modelId, useWebSearch);
+    const modelConfig = getModelConfig(input.modelId);
+    if (!modelConfig) {
+      throw new InvalidModelError("Invalid model selected");
+    }
 
-    if (attachments.length > MAX_ATTACHMENTS) {
-      throw new TRPCError({
-        code: "BAD_REQUEST",
-        message: `Too many attachments (max ${MAX_ATTACHMENTS})`,
-      });
+    const modelDescriptor = this.getAvailableModels().find(
+      (item) => item.id === modelConfig.id
+    );
+
+    if (
+      input.useWebSearch &&
+      modelDescriptor &&
+      !modelDescriptor.supportsWebSearch
+    ) {
+      throw new ValidationError("Selected model does not support web search");
     }
 
     const totalSize = attachments.reduce((sum, item) => sum + item.size, 0);
-    if (totalSize > MAX_TOTAL_ATTACHMENT_SIZE) {
-      throw new TRPCError({
-        code: "PAYLOAD_TOO_LARGE",
-        message: "Attachments exceed maximum total size",
-      });
+    if (totalSize > FILE_LIMITS.MAX_TOTAL_ATTACHMENT_SIZE) {
+      throw new PayloadTooLargeError("Attachments exceed maximum total size");
     }
 
-    const normalizedAttachments = await this.normalizeAttachments(attachments);
+    const normalizedAttachments = this.normalizeAttachments(attachments);
 
-    try {
-      const chat = await this.repository.createChatWithMessage({
-        userId,
-        title: this.resolveTitle(trimmedMessage),
-        initialMessage: trimmedMessage,
-        modelId,
-        useWebSearch,
-        attachments: normalizedAttachments,
-      });
+    const chat = await this.repository.createChatWithMessage({
+      userId,
+      title: this.resolveTitle(message),
+      initialMessage: message,
+      provider: modelConfig.provider,
+      modelId: modelConfig.id,
+      useWebSearch: input.useWebSearch,
+      parentId: input.parentId,
+      forkedFromMessageId: input.forkedFromMessageId,
+      attachments: normalizedAttachments,
+      metadata: {
+        modelId: modelConfig.id,
+        provider: modelConfig.provider,
+        useWebSearch: input.useWebSearch,
+        contextWindow: modelConfig.contextWindow,
+        parentId: input.parentId,
+        forkedFromMessageId: input.forkedFromMessageId,
+      } as Prisma.InputJsonValue,
+    });
 
-      const firstMessage = chat.messages[0];
-      if (!firstMessage) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Initial message creation failed",
-        });
-      }
-
-      const createdAttachments = await this.repository.listAttachmentsByChat(
-        chat.id
-      );
-
-      return {
-        chatId: chat.id,
-        messageId: firstMessage.id,
-        modelId,
-        useWebSearch,
-        attachments: createdAttachments,
-      };
-    } catch (error) {
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to create chat",
-        cause: error,
-      });
+    const firstMessage = chat.messages[0];
+    if (!firstMessage) {
+      throw new ValidationError("Initial message creation failed");
     }
+
+    const createdAttachments = await this.repository.listAttachmentsByChat(
+      chat.id
+    );
+
+    return {
+      id: chat.id,
+      chatId: chat.id,
+      messageId: firstMessage.id,
+      provider: modelConfig.provider,
+      modelId: modelConfig.id,
+      useWebSearch: input.useWebSearch,
+      attachments: createdAttachments,
+    };
+  }
+
+  async listUserChats(userId: string, input: ListChatsInput) {
+    const includeArchived = input.includeArchived ?? false;
+    const limit = input.limit ?? PAGINATION_LIMITS.DEFAULT_LIMIT;
+
+    return this.repository.findChatsByUser({
+      userId,
+      includeArchived,
+      limit,
+      cursor: input.cursor,
+    });
+  }
+
+  async getChatById(id: string, userId: string) {
+    const chat = await this.repository.findChatById(id, userId);
+
+    if (!chat) {
+      throw new ChatNotFoundError("Chat not found");
+    }
+
+    return chat;
   }
 
   async enhancePrompt(
     userId: string,
     input: EnhancePromptInput
   ): Promise<EnhancePromptResult> {
-    this.assertModelSupportsWebSearch(input.modelId, input.useWebSearch);
-
-    const contextMessages = input.contextChatId
-      ? await this.repository.findChatById(input.contextChatId, userId)
-      : null;
-
-    try {
-      return await this.enhancer.enhance({
-        ...input,
-        context: contextMessages ?? undefined,
-      });
-    } catch (error) {
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to enhance prompt",
-        cause: error,
-      });
+    const modelConfig = getModelConfig(input.modelId);
+    if (!modelConfig) {
+      throw new InvalidModelError("Invalid model selected");
     }
+
+    const modelDescriptor = this.getAvailableModels().find(
+      (item) => item.id === modelConfig.id
+    );
+
+    if (
+      input.useWebSearch &&
+      modelDescriptor &&
+      !modelDescriptor.supportsWebSearch
+    ) {
+      throw new ValidationError("Selected model does not support web search");
+    }
+
+    let context: unknown;
+    if (input.contextChatId) {
+      const chat = await this.repository.findChatById(
+        input.contextChatId,
+        userId
+      );
+      if (!chat) {
+        throw new ChatNotFoundError("Context chat not found");
+      }
+      context = chat.messages;
+    }
+
+    if (!this.enhancer) {
+      return {
+        enhancedText: input.text,
+        modelId: modelConfig.id,
+        provider: modelConfig.provider,
+        useWebSearchApplied:
+          Boolean(input.useWebSearch) &&
+          Boolean(modelDescriptor?.supportsWebSearch),
+      };
+    }
+
+    const enhanced = await this.enhancer.enhance({
+      ...input,
+      context,
+    });
+
+    return {
+      enhancedText: enhanced.enhancedText,
+      modelId: modelConfig.id,
+      provider: modelConfig.provider,
+      useWebSearchApplied: enhanced.useWebSearchApplied,
+      suggestions: enhanced.suggestions,
+    };
   }
 
-  async listUserChats(
+  async forkChat(userId: string, input: ForkChatInput) {
+    const { originalChatId, title, forkedFromMessageId } = input;
+
+    // Verify original chat ownership
+    const originalChat = await this.repository.findChatById(
+      originalChatId,
+      userId
+    );
+    if (!originalChat) {
+      throw new ChatNotFoundError("Original chat not found");
+    }
+
+    return await this.repository.forkChat(
+      originalChatId,
+      userId,
+      title || `Fork of ${originalChat.title}`,
+      forkedFromMessageId
+    );
+  }
+
+  async generateAIResponse(
     userId: string,
-    includeArchived: boolean,
-    limit: number,
-    cursor?: string
-  ) {
+    chatId: string,
+    message: string
+  ): Promise<any> {
+    // Get chat details
+    const chat = await this.repository.findChatById(chatId, userId);
+    if (!chat) {
+      throw new ChatNotFoundError("Chat not found");
+    }
+
+    // Get context and rules for the chat
+    const context = await this.getContextForChat(chatId);
+    const rules = await this.getRulesForChat(chatId);
+
+    const streamService = new ChatStreamService();
+
+    return await streamService.generateResponse({
+      chatId,
+      userId,
+      message,
+      provider: chat.provider,
+      modelId: chat.model,
+      context,
+      rules,
+    });
+  }
+
+  private async getContextForChat(_chatId: string): Promise<ContextItem[]> {
+    if (!this.contextService) {
+      return [];
+    }
+
     try {
-      return await this.repository.findChatsByUser({
-        userId,
-        includeArchived,
-        limit,
-        cursor,
-      });
+      // This would call the contextEngine service to get relevant context
+      // Integration would depend on the actual contextEngine service interface
+      return []; // Placeholder
     } catch (error) {
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to fetch chats",
-        cause: error,
-      });
+      // TODO: Add proper logging instead of console
+      return [];
     }
   }
 
-  getChatById(id: string, userId: string) {
-    return this.repository.findChatById(id, userId);
+  private async getRulesForChat(chatId: string): Promise<Rule[]> {
+    if (!this.rulesService) {
+      return [];
+    }
+
+    try {
+      // This would call the rules service to get relevant rules
+      // Integration would depend on the actual rules service interface
+      return []; // Placeholder
+    } catch (error) {
+      // TODO: Add proper logging instead of console
+      return [];
+    }
   }
 
-  private resolveTitle(initialMessage: string | undefined) {
+  private resolveTitle(initialMessage: string) {
     if (!initialMessage) {
       return "Untitled Chat";
     }
@@ -189,45 +324,39 @@ export class ChatService {
     if (!trimmed) {
       return "Untitled Chat";
     }
-    return trimmed.length > DEFAULT_TITLE_LENGTH
-      ? `${trimmed.substring(0, DEFAULT_TITLE_LENGTH)}...`
-      : trimmed;
+    if (trimmed.length > CHAT_LIMITS.MAX_TITLE_LENGTH) {
+      return `${trimmed.substring(0, CHAT_LIMITS.MAX_TITLE_LENGTH)}...`;
+    }
+    return trimmed;
   }
 
-  private async normalizeAttachments(attachments: AttachmentInput[]): Promise<
-    {
-      kind: AttachmentKind;
-      filename: string;
-      mimeType: string;
-      size: number;
-      storageKey: string;
-      transcription?: string | null;
-      metadata?: unknown;
-    }[]
-  > {
-    return Promise.all(
-      attachments.map(async (attachment) => {
-        if (!attachment.uploadId) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Missing upload reference for attachment",
-          });
-        }
+  private normalizeAttachments(
+    attachments: AttachmentInput[]
+  ): CreateChatAttachmentData[] {
+    if (attachments.length === 0) {
+      return [];
+    }
 
-        const storageKey = await this.storageAdapter.resolveStorageKey(
-          attachment.uploadId,
-          attachment.name
-        );
+    return attachments.map((attachment) => {
+      const storageKey =
+        attachment.storageKey ??
+        (attachment.uploadId
+          ? `${attachment.uploadId}/${attachment.name}`
+          : undefined);
 
-        return {
-          kind: attachment.kind,
-          filename: attachment.name,
-          mimeType: attachment.mimeType,
-          size: attachment.size,
-          storageKey,
-          transcription: attachment.transcription ?? null,
-        };
-      })
-    );
+      if (!storageKey) {
+        throw new ValidationError("Missing storage reference for attachment");
+      }
+
+      return {
+        kind: attachment.kind,
+        filename: attachment.name,
+        mimeType: attachment.mimeType,
+        size: attachment.size,
+        storageKey,
+        transcription: attachment.transcription ?? null,
+        metadata: attachment.metadata as Prisma.InputJsonValue | undefined,
+      } satisfies CreateChatAttachmentData;
+    });
   }
 }

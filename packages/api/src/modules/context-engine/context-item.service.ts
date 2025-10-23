@@ -129,9 +129,170 @@ export class ContextItemService extends BaseService {
     return this.repository.promoteToGlobal(id, userId);
   }
 
-  // TODO: Implement later
-  // - create() - for URL, GitHub, Document
-  // - update()
-  // - delete()
-  // - processFile() - extract text from PDF, etc.
+  async createFromUrl(userId: string, input: {
+  name: string;
+  description?: string;
+  url: string;
+  chatId?: string;
+}) {
+    // Basic validation
+    this.validateRequired(input.url, "URL");
+    this.validateLength(input.name, "Name", 1, 255);
+    if (input.description) {
+      this.validateLength(input.description, "Description", 0, 1000);
+    }
+
+    // For now, just store the URL as content
+    // TODO: Implement URL content fetching
+    const contextItem: CreateContextItemInput = {
+      name: input.name,
+      description: input.description,
+      type: "URL",
+      content: input.url,
+      size: input.url.length,
+      scope: input.chatId ? "LOCAL" : "GLOBAL",
+      chatId: input.chatId,
+    };
+
+    return await this.repository.create(userId, contextItem);
+  }
+
+  async createFromGitHub(userId: string, input: {
+    name: string;
+    description?: string;
+    repoUrl: string;
+    branch?: string;
+    filePaths?: string[];
+    chatId?: string;
+  }) {
+    // Basic validation
+    this.validateRequired(input.repoUrl, "Repository URL");
+    this.validateLength(input.name, "Name", 1, 255);
+    if (input.description) {
+      this.validateLength(input.description, "Description", 0, 1000);
+    }
+
+    // For now, just store the repo info as content
+    // TODO: Implement GitHub cloning and file processing
+    const contextItem: CreateContextItemInput = {
+      name: input.name,
+      description: input.description,
+      type: "GITHUB_REPO",
+      content: JSON.stringify({
+        repoUrl: input.repoUrl,
+        branch: input.branch || "main",
+        filePaths: input.filePaths || [],
+      }),
+      size: input.repoUrl.length,
+      scope: input.chatId ? "LOCAL" : "GLOBAL",
+      chatId: input.chatId,
+    };
+
+    return await this.repository.create(userId, contextItem);
+  }
+
+  async createDocument(userId: string, input: {
+    name: string;
+    description?: string;
+    content: string;
+    chatId?: string;
+  }) {
+    // Validation
+    this.validateRequired(input.content, "Content");
+    this.validateLength(input.name, "Name", 1, 255);
+    this.validateLength(input.content, "Content", 1, CONTEXT_LIMITS.MAX_CONTEXT_SIZE);
+    if (input.description) {
+      this.validateLength(input.description, "Description", 0, 1000);
+    }
+
+    const tokens = this.countTokens(input.content);
+    const size = input.content.length;
+
+    // Check limits
+    if (size > CONTEXT_LIMITS.MAX_CONTEXT_SIZE) {
+      throw new ValidationError(
+        `Document exceeds maximum size. Maximum: ${CONTEXT_LIMITS.MAX_CONTEXT_SIZE}`
+      );
+    }
+
+    if (tokens > CONTEXT_LIMITS.MAX_TOKEN_COUNT) {
+      throw new ValidationError(
+        `Document contains too many tokens (${tokens}). Maximum: ${CONTEXT_LIMITS.MAX_TOKEN_COUNT}`
+      );
+    }
+
+    const contextItem: CreateContextItemInput = {
+      name: input.name,
+      description: input.description,
+      type: "DOCUMENT",
+      content: input.content,
+      size,
+      scope: input.chatId ? "LOCAL" : "GLOBAL",
+      chatId: input.chatId,
+    };
+
+    return await this.repository.create(userId, contextItem);
+  }
+
+  async update(userId: string, id: string, input: Partial<CreateContextItemInput>) {
+    const item = await this.repository.findById(id, userId);
+    if (!item) {
+      throw new ContextNotFoundError("Context item not found");
+    }
+
+    // Validate content if provided
+    if (input.content) {
+      this.validateLength(input.content, "Content", 1, CONTEXT_LIMITS.MAX_CONTEXT_SIZE);
+      
+      const tokens = this.countTokens(input.content);
+      if (tokens > CONTEXT_LIMITS.MAX_TOKEN_COUNT) {
+        throw new ValidationError(
+          `Content contains too many tokens (${tokens}). Maximum: ${CONTEXT_LIMITS.MAX_TOKEN_COUNT}`
+        );
+      }
+    }
+
+    return await this.repository.update(id, userId, input);
+  }
+
+  async delete(userId: string, id: string) {
+    const item = await this.repository.findById(id, userId);
+    if (!item) {
+      throw new ContextNotFoundError("Context item not found");
+    }
+
+    await this.repository.delete(id, userId);
+  }
+
+  async linkToChat(userId: string, contextId: string, chatId: string) {
+    const item = await this.repository.findById(contextId, userId);
+    if (!item) {
+      throw new ContextNotFoundError("Context item not found");
+    }
+
+    // Verify chat ownership
+    const chat = await this.prisma.chat.findFirst({
+      where: { id: chatId, userId },
+    });
+
+    if (!chat) {
+      throw new ValidationError("Chat not found or access denied");
+    }
+
+    await this.repository.linkToChat(contextId, chatId, userId);
+  }
+
+  async unlinkFromChat(userId: string, contextId: string, chatId: string) {
+    const item = await this.repository.findById(contextId, userId);
+    if (!item) {
+      throw new ContextNotFoundError("Context item not found");
+    }
+
+    await this.repository.unlinkFromChat(contextId, chatId, userId);
+  }
+
+  private countTokens(text: string): number {
+    // Simple token counting - in a real implementation, use a proper tokenizer
+    return Math.ceil(text.length / 4);
+  }
 }

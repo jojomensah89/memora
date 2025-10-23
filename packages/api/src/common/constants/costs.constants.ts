@@ -60,7 +60,9 @@ export function getModelCost(
   model: string
 ): { input: number; output: number } | null {
   const providerCosts = AI_PROVIDER_COSTS[provider];
-  if (!providerCosts) { return null; }
+  if (!providerCosts) {
+    return null;
+  }
 
   const modelCosts = providerCosts[model as keyof typeof providerCosts];
   return modelCosts || null;

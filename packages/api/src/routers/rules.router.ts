@@ -53,8 +53,58 @@ export const rulesRouter = router({
       ruleController.create(ctx.session.user.id, input)
     ),
 
-  // TODO: Add later
-  // update: protectedProcedure.input(updateRuleSchema).mutation(...),
-  // delete: protectedProcedure.input(deleteRuleSchema).mutation(...),
-  // toggleActive: protectedProcedure.input(toggleRuleSchema).mutation(...),
+  /**
+   * Update existing rule
+   */
+  update: protectedProcedure
+    .input(getRuleSchema.extend({ data: createRuleSchema.partial() }))
+    .mutation(async ({ ctx, input }) =>
+      ruleController.update(ctx.session.user.id, input.id, input.data)
+    ),
+
+  /**
+   * Delete a rule
+   */
+  delete: protectedProcedure
+    .input(getRuleSchema)
+    .mutation(async ({ ctx, input }) =>
+      ruleController.delete(ctx.session.user.id, input.id)
+    ),
+
+  /**
+   * Toggle rule active status
+   */
+  toggleActive: protectedProcedure
+    .input(getRuleSchema)
+    .mutation(async ({ ctx, input }) =>
+      ruleController.toggleActive(ctx.session.user.id, input.id)
+    ),
+
+  /**
+   * Link rule to a chat (for LOCAL rules)
+   */
+  linkToChat: protectedProcedure
+    .input(
+      z.object({
+        ruleId: z.string().min(1),
+        chatId: z.string().min(1),
+      })
+    )
+    .mutation(async ({ ctx, input }) =>
+      ruleController.linkToChat(ctx.session.user.id, input.ruleId, input.chatId)
+    ),
+
+  /**
+   * Unlink rule from a chat
+   */
+  unlinkFromChat: protectedProcedure
+    .input(
+      z.object({
+        ruleId: z.string().min(1),
+        chatId: z.string().min(1),
+      })
+    )
+    .mutation(async ({ ctx, input }) =>
+      ruleController.unlinkFromChat(ctx.session.user.id, input.ruleId, input.chatId)
+    ),
 });

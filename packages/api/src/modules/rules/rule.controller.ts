@@ -58,8 +58,61 @@ export class RuleController {
     }
   }
 
-  // TODO: Implement later
-  // - update()
-  // - delete()
-  // - toggleActive()
+  /**
+   * Update existing rule
+   */
+  async update(userId: string, id: string, input: Partial<CreateRuleInput>) {
+    try {
+      return await this.service.update(userId, id, input);
+    } catch (error) {
+      handleError(error);
+    }
+  }
+
+  /**
+   * Delete a rule
+   */
+  async delete(userId: string, id: string) {
+    try {
+      await this.service.delete(userId, id);
+      return { success: true };
+    } catch (error) {
+      handleError(error);
+    }
+  }
+
+  /**
+   * Toggle rule active status
+   */
+  async toggleActive(userId: string, id: string) {
+    try {
+      return await this.service.toggleActive(userId, id);
+    } catch (error) {
+      handleError(error);
+    }
+  }
+
+  /**
+   * Link rule to a chat (for LOCAL rules)
+   */
+  async linkToChat(userId: string, ruleId: string, chatId: string) {
+    try {
+      await this.service.linkToChat(userId, ruleId, chatId);
+      return { success: true };
+    } catch (error) {
+      handleError(error);
+    }
+  }
+
+  /**
+   * Unlink rule from a chat
+   */
+  async unlinkFromChat(userId: string, ruleId: string, chatId: string) {
+    try {
+      await this.service.unlinkFromChat(userId, ruleId, chatId);
+      return { success: true };
+    } catch (error) {
+      handleError(error);
+    }
+  }
 }
