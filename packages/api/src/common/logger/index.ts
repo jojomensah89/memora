@@ -23,40 +23,46 @@ export const apiLogger = (message: string, ...rest: string[]) => {
 /**
  * Enhanced logger with context information
  */
-export const contextLogger = (context: LogContext) => {
-  return (message: string, ...rest: string[]) => {
+export const contextLogger =
+  (context: LogContext) =>
+  (message: string, ...rest: string[]) => {
     const timestamp = new Date().toISOString();
     const contextInfo = Object.entries(context)
       .filter(([_, value]) => value !== undefined)
       .map(([key, value]) => `${key}=${value}`)
-      .join(' ');
-    
-    const prefix = contextInfo ? `[${timestamp}] API [${contextInfo}]` : `[${timestamp}] API`;
+      .join(" ");
+
+    const prefix = contextInfo
+      ? `[${timestamp}] API [${contextInfo}]`
+      : `[${timestamp}] API`;
     console.log(`${prefix} ${message}`, ...rest);
   };
-};
 
 /**
  * Error logger with structured format
  */
-export const errorLogger = (message: string, error: unknown, context?: LogContext) => {
+export const errorLogger = (
+  message: string,
+  error: unknown,
+  context?: LogContext
+) => {
   const timestamp = new Date().toISOString();
-  const errorInfo = error instanceof Error ? 
-    `${error.name}: ${error.message}` : 
-    String(error);
-  
-  const contextInfo = context ? 
-    Object.entries(context)
-      .filter(([_, value]) => value !== undefined)
-      .map(([key, value]) => `${key}=${value}`)
-      .join(' ') : '';
-  
-  const prefix = contextInfo ? 
-    `[${timestamp}] API ERROR [${contextInfo}]` : 
-    `[${timestamp}] API ERROR`;
-    
+  const errorInfo =
+    error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+
+  const contextInfo = context
+    ? Object.entries(context)
+        .filter(([_, value]) => value !== undefined)
+        .map(([key, value]) => `${key}=${value}`)
+        .join(" ")
+    : "";
+
+  const prefix = contextInfo
+    ? `[${timestamp}] API ERROR [${contextInfo}]`
+    : `[${timestamp}] API ERROR`;
+
   console.error(`${prefix} ${message} | ${errorInfo}`);
-  
+
   if (error instanceof Error && error.stack) {
     console.error(`${prefix} Stack: ${error.stack}`);
   }
@@ -68,21 +74,24 @@ export const errorLogger = (message: string, error: unknown, context?: LogContex
 export const perfLogger = (operation: string, context?: LogContext) => {
   const startTime = Date.now();
   const timestamp = new Date().toISOString();
-  const contextInfo = context ? 
-    Object.entries(context)
-      .filter(([_, value]) => value !== undefined)
-      .map(([key, value]) => `${key}=${value}`)
-      .join(' ') : '';
-  
-  const prefix = contextInfo ? `[${timestamp}] API PERF [${contextInfo}]` : `[${timestamp}] API PERF`;
-  
+  const contextInfo = context
+    ? Object.entries(context)
+        .filter(([_, value]) => value !== undefined)
+        .map(([key, value]) => `${key}=${value}`)
+        .join(" ")
+    : "";
+
+  const prefix = contextInfo
+    ? `[${timestamp}] API PERF [${contextInfo}]`
+    : `[${timestamp}] API PERF`;
+
   console.log(`${prefix} Starting: ${operation}`);
-  
+
   return {
     end: () => {
       const duration = Date.now() - startTime;
       console.log(`${prefix} Completed: ${operation} (${duration}ms)`);
       return duration;
-    }
+    },
   };
 };

@@ -92,7 +92,7 @@ export class RuleRepository extends BaseRepository<RuleWithTags> {
           isActive: data.isActive,
           tags: data.tags?.length
             ? {
-                create: data.tags.map(tag => ({ name: tag })),
+                create: data.tags.map((tag) => ({ name: tag })),
               }
             : undefined,
         },
@@ -115,10 +115,13 @@ export class RuleRepository extends BaseRepository<RuleWithTags> {
 
       return {
         total: rules.length,
-        global: rules.filter((r: { scope: string; }) => r.scope === "GLOBAL").length,
-        local: rules.filter((r: { scope: string; }) => r.scope === "LOCAL").length,
-        active: rules.filter((r: { isActive: boolean; }) => r.isActive).length,
-        inactive: rules.filter((r: { isActive: boolean; }) => !r.isActive).length,
+        global: rules.filter((r: { scope: string }) => r.scope === "GLOBAL")
+          .length,
+        local: rules.filter((r: { scope: string }) => r.scope === "LOCAL")
+          .length,
+        active: rules.filter((r: { isActive: boolean }) => r.isActive).length,
+        inactive: rules.filter((r: { isActive: boolean }) => !r.isActive)
+          .length,
       };
     } catch (error) {
       throw new DatabaseError("Failed to get rule stats", error);

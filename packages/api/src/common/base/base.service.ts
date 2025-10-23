@@ -1,5 +1,5 @@
 import { ValidationError } from "../errors";
-import { errorLogger, perfLogger, type LogContext } from "../logger";
+import { errorLogger, type LogContext, perfLogger } from "../logger";
 
 /**
  * Base Service
@@ -20,7 +20,7 @@ export abstract class BaseService {
    * Get error logger with context
    */
   protected getErrorLogger(context?: Partial<LogContext>) {
-    return (message: string, error: unknown) => 
+    return (message: string, error: unknown) =>
       errorLogger(message, error, {
         module: this.constructor.name,
         ...context,

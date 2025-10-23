@@ -103,17 +103,18 @@ export class ContextItemRepository extends BaseRepository<ContextItemWithTags> {
           metadata: data.metadata as any,
           tags: data.tags?.length
             ? {
-                create: data.tags.map(tag => ({ name: tag })),
+                create: data.tags.map((tag) => ({ name: tag })),
               }
             : undefined,
-          chatLinks: data.chatId && data.scope === "LOCAL"
-            ? {
-                create: {
-                  chatId: data.chatId,
-                  isSelected: true,
-                },
-              }
-            : undefined,
+          chatLinks:
+            data.chatId && data.scope === "LOCAL"
+              ? {
+                  create: {
+                    chatId: data.chatId,
+                    isSelected: true,
+                  },
+                }
+              : undefined,
         },
         include: { tags: true },
       });

@@ -129,12 +129,15 @@ export class ContextItemService extends BaseService {
     return this.repository.promoteToGlobal(id, userId);
   }
 
-  async createFromUrl(userId: string, input: {
-  name: string;
-  description?: string;
-  url: string;
-  chatId?: string;
-}) {
+  async createFromUrl(
+    userId: string,
+    input: {
+      name: string;
+      description?: string;
+      url: string;
+      chatId?: string;
+    }
+  ) {
     // Basic validation
     this.validateRequired(input.url, "URL");
     this.validateLength(input.name, "Name", 1, 255);
@@ -157,14 +160,17 @@ export class ContextItemService extends BaseService {
     return await this.repository.create(userId, contextItem);
   }
 
-  async createFromGitHub(userId: string, input: {
-    name: string;
-    description?: string;
-    repoUrl: string;
-    branch?: string;
-    filePaths?: string[];
-    chatId?: string;
-  }) {
+  async createFromGitHub(
+    userId: string,
+    input: {
+      name: string;
+      description?: string;
+      repoUrl: string;
+      branch?: string;
+      filePaths?: string[];
+      chatId?: string;
+    }
+  ) {
     // Basic validation
     this.validateRequired(input.repoUrl, "Repository URL");
     this.validateLength(input.name, "Name", 1, 255);
@@ -191,16 +197,24 @@ export class ContextItemService extends BaseService {
     return await this.repository.create(userId, contextItem);
   }
 
-  async createDocument(userId: string, input: {
-    name: string;
-    description?: string;
-    content: string;
-    chatId?: string;
-  }) {
+  async createDocument(
+    userId: string,
+    input: {
+      name: string;
+      description?: string;
+      content: string;
+      chatId?: string;
+    }
+  ) {
     // Validation
     this.validateRequired(input.content, "Content");
     this.validateLength(input.name, "Name", 1, 255);
-    this.validateLength(input.content, "Content", 1, CONTEXT_LIMITS.MAX_CONTEXT_SIZE);
+    this.validateLength(
+      input.content,
+      "Content",
+      1,
+      CONTEXT_LIMITS.MAX_CONTEXT_SIZE
+    );
     if (input.description) {
       this.validateLength(input.description, "Description", 0, 1000);
     }
@@ -234,7 +248,11 @@ export class ContextItemService extends BaseService {
     return await this.repository.create(userId, contextItem);
   }
 
-  async update(userId: string, id: string, input: Partial<CreateContextItemInput>) {
+  async update(
+    userId: string,
+    id: string,
+    input: Partial<CreateContextItemInput>
+  ) {
     const item = await this.repository.findById(id, userId);
     if (!item) {
       throw new ContextNotFoundError("Context item not found");
@@ -242,8 +260,13 @@ export class ContextItemService extends BaseService {
 
     // Validate content if provided
     if (input.content) {
-      this.validateLength(input.content, "Content", 1, CONTEXT_LIMITS.MAX_CONTEXT_SIZE);
-      
+      this.validateLength(
+        input.content,
+        "Content",
+        1,
+        CONTEXT_LIMITS.MAX_CONTEXT_SIZE
+      );
+
       const tokens = this.countTokens(input.content);
       if (tokens > CONTEXT_LIMITS.MAX_TOKEN_COUNT) {
         throw new ValidationError(

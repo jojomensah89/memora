@@ -105,6 +105,10 @@ export const rulesRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) =>
-      ruleController.unlinkFromChat(ctx.session.user.id, input.ruleId, input.chatId)
+      ruleController.unlinkFromChat(
+        ctx.session.user.id,
+        input.ruleId,
+        input.chatId
+      )
     ),
 });

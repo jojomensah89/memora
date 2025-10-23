@@ -1,8 +1,8 @@
-import { protectedProcedure, router } from "../index";
 import { z } from "zod";
+import { protectedProcedure, router } from "../index";
 import { ContextItemController } from "../modules/context-engine/context-item.controller";
-import { createDocumentInputSchema } from "../modules/context-engine/context-item.inputs";
 import {
+  createDocumentInputSchema,
   getContextForChatSchema,
   getContextItemSchema,
   promoteToGlobalSchema,
@@ -69,12 +69,14 @@ export const contextEngineRouter = router({
    * Create context from URL
    */
   createFromUrl: protectedProcedure
-    .input(z.object({
-      name: z.string().min(1).max(255),
-      description: z.string().max(1000).optional(),
-      url: z.string().url(),
-      chatId: z.string().min(1).optional(),
-    }))
+    .input(
+      z.object({
+        name: z.string().min(1).max(255),
+        description: z.string().max(1000).optional(),
+        url: z.string().url(),
+        chatId: z.string().min(1).optional(),
+      })
+    )
     .mutation(async ({ ctx, input }) =>
       contextController.createFromUrl(ctx.session.user.id, input)
     ),
@@ -83,14 +85,16 @@ export const contextEngineRouter = router({
    * Create context from GitHub repository
    */
   createFromGitHub: protectedProcedure
-    .input(z.object({
-      name: z.string().min(1).max(255),
-      description: z.string().max(1000).optional(),
-      repoUrl: z.string().url(),
-      branch: z.string().optional(),
-      filePaths: z.array(z.string()).optional(),
-      chatId: z.string().min(1).optional(),
-    }))
+    .input(
+      z.object({
+        name: z.string().min(1).max(255),
+        description: z.string().max(1000).optional(),
+        repoUrl: z.string().url(),
+        branch: z.string().optional(),
+        filePaths: z.array(z.string()).optional(),
+        chatId: z.string().min(1).optional(),
+      })
+    )
     .mutation(async ({ ctx, input }) =>
       contextController.createFromGitHub(ctx.session.user.id, input)
     ),
@@ -99,12 +103,14 @@ export const contextEngineRouter = router({
    * Create context from document
    */
   createDocument: protectedProcedure
-    .input(z.object({
-      name: z.string().min(1).max(255),
-      description: z.string().max(1000).optional(),
-      content: z.string().min(1),
-      chatId: z.string().min(1).optional(),
-    }))
+    .input(
+      z.object({
+        name: z.string().min(1).max(255),
+        description: z.string().max(1000).optional(),
+        content: z.string().min(1),
+        chatId: z.string().min(1).optional(),
+      })
+    )
     .mutation(async ({ ctx, input }) =>
       contextController.createDocument(ctx.session.user.id, input)
     ),
@@ -113,7 +119,9 @@ export const contextEngineRouter = router({
    * Update existing context item
    */
   update: protectedProcedure
-    .input(getContextItemSchema.extend({ data: createDocumentInputSchema.partial() }))
+    .input(
+      getContextItemSchema.extend({ data: createDocumentInputSchema.partial() })
+    )
     .mutation(async ({ ctx, input }) =>
       contextController.update(ctx.session.user.id, input.id, input.data)
     ),
@@ -131,23 +139,35 @@ export const contextEngineRouter = router({
    * Link context item to chat
    */
   linkToChat: protectedProcedure
-    .input(z.object({
-      contextId: z.string().min(1),
-      chatId: z.string().min(1),
-    }))
+    .input(
+      z.object({
+        contextId: z.string().min(1),
+        chatId: z.string().min(1),
+      })
+    )
     .mutation(async ({ ctx, input }) =>
-      contextController.linkToChat(ctx.session.user.id, input.contextId, input.chatId)
+      contextController.linkToChat(
+        ctx.session.user.id,
+        input.contextId,
+        input.chatId
+      )
     ),
 
   /**
    * Unlink context item from chat
    */
   unlinkFromChat: protectedProcedure
-    .input(z.object({
-      contextId: z.string().min(1),
-      chatId: z.string().min(1),
-    }))
+    .input(
+      z.object({
+        contextId: z.string().min(1),
+        chatId: z.string().min(1),
+      })
+    )
     .mutation(async ({ ctx, input }) =>
-      contextController.unlinkFromChat(ctx.session.user.id, input.contextId, input.chatId)
+      contextController.unlinkFromChat(
+        ctx.session.user.id,
+        input.contextId,
+        input.chatId
+      )
     ),
 });

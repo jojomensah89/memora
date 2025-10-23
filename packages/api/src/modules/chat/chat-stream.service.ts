@@ -1,6 +1,4 @@
 import type { AIProvider } from "@prisma/client";
-import { generateText } from "ai";
-import { getAgents } from "../../agents";
 import { BaseService } from "../../common/base";
 import { AIModelError, ValidationError } from "../../common/errors";
 import { countTokens } from "../../common/utils/token-counter.util";
@@ -50,10 +48,6 @@ export class ChatStreamService extends BaseService {
 
     try {
       // Get the appropriate AI agent
-      const agent = getAgents()[provider];
-      if (!agent) {
-        throw new AIModelError(`Agent not available for provider: ${provider}`);
-      }
 
       // Build system prompt with rules
       const systemPrompt = this.buildSystemPrompt(rules || []);
@@ -62,25 +56,6 @@ export class ChatStreamService extends BaseService {
       const contextText = this.prepareContext(context || []);
 
       // Prepare tools
-      const tools = agent.tools || {};
-
-      // Generate the response
-      const result = await generateText({
-        model: agent.getModel(modelId),
-        system: systemPrompt,
-        messages: [
-          {
-            role: "system",
-            content: contextText,
-          },
-          {
-            role: "user",
-            content: message,
-          },
-        ],
-        tools,
-        maxRetries: 3,
-      });
 
       // Count tokens
       const inputTokens = countTokens(message + systemPrompt + contextText);
