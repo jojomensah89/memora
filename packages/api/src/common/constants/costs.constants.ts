@@ -3,6 +3,10 @@
  * Updated as of 2025 - verify with provider docs
  */
 
+export const COST_CONSTANTS = {
+  TOKENS_PER_MILLION: 1_000_000,
+} as const;
+
 export const AI_PROVIDER_COSTS = {
   CLAUDE: {
     "claude-3-5-sonnet-20241022": {
@@ -56,7 +60,9 @@ export function getModelCost(
   model: string
 ): { input: number; output: number } | null {
   const providerCosts = AI_PROVIDER_COSTS[provider];
-  if (!providerCosts) return null;
+  if (!providerCosts) {
+    return null;
+  }
 
   const modelCosts = providerCosts[model as keyof typeof providerCosts];
   return modelCosts || null;

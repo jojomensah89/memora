@@ -1,4 +1,5 @@
 import { ValidationError } from "../errors";
+import { errorLogger, perfLogger, type LogContext } from "../logger";
 
 /**
  * Base Service
@@ -6,12 +7,42 @@ import { ValidationError } from "../errors";
  */
 export abstract class BaseService {
   /**
+   * Get logger with service context
+   */
+  protected getLogger(context?: Partial<LogContext>) {
+    return contextLogger({
+      module: this.constructor.name,
+      ...context,
+    });
+  }
+
+  /**
+   * Get error logger with context
+   */
+  protected getErrorLogger(context?: Partial<LogContext>) {
+    return (message: string, error: unknown) => 
+      errorLogger(message, error, {
+        module: this.constructor.name,
+        ...context,
+      });
+  }
+
+  /**
+   * Get performance logger
+   */
+  protected getPerfLogger(operation: string, context?: Partial<LogContext>) {
+    return perfLogger(operation, {
+      module: this.constructor.name,
+      ...context,
+    });
+  }
+  /**
    * Validate required fields
    */
   protected validateRequired(
     value: unknown,
     fieldName: string
-  ): asserts value is NonNullable<typeof value> {
+  ): asserts value is NonNullable<unknown> {
     if (value === null || value === undefined || value === "") {
       throw new ValidationError(`${fieldName} is required`);
     }
@@ -48,14 +79,10 @@ export abstract class BaseService {
     max?: number
   ): void {
     if (min !== undefined && array.length < min) {
-      throw new ValidationError(
-        `${fieldName} must have at least ${min} items`
-      );
+      throw new ValidationError(`${fieldName} must have at least ${min} items`);
     }
     if (max !== undefined && array.length > max) {
-      throw new ValidationError(
-        `${fieldName} must have at most ${max} items`
-      );
+      throw new ValidationError(`${fieldName} must have at most ${max} items`);
     }
   }
 

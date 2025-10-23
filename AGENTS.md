@@ -20,6 +20,62 @@ If you're an AI assistant helping build Memora:
 3. Follow `CLAUDE_CODE_PROMPTS.md` sequentially for implementation
 4. Check `IMPLEMENTATION_PLAN.md` for current phase and progress
 
+### TypeScript Linting Guidelines (Critical)
+
+**ALWAYS run `bun run check` before completing any task.** This project uses Biome linting with strict TypeScript rules.
+
+#### ❌ Common Errors to Avoid:
+
+1. **Interface vs Type**: Use `type` instead of `interface`
+   ```typescript
+   // ❌ WRONG
+   export interface User {
+     name: string;
+   }
+
+   // ✅ CORRECT
+   export type User = {
+     name: string;
+   };
+   ```
+
+2. **Magic Numbers**: All numeric literals must be constants
+   ```typescript
+   // ❌ WRONG
+   if (status === 400) { ... }
+   
+   // ✅ CORRECT
+   import { HTTP_STATUS } from "./common/constants/limits.constants";
+   if (status === HTTP_STATUS.BAD_REQUEST) { ... }
+   ```
+
+3. **Console Usage**: No console.log/error in production code
+   ```typescript
+   // ❌ WRONG
+   console.error("Error:", error);
+   
+   // ✅ CORRECT
+   // Use proper error handling or logging service
+   ```
+
+#### ✅ Before Completing Any Task:
+
+1. **Run Lint Check**: `bun run check`
+2. **Fix All Errors**: Address every single linting issue
+3. **Re-run Check**: Verify all errors are resolved
+4. **No Warnings Accepted**: Zero tolerance for lint violations
+
+#### 📁 Constants Available:
+- `HTTP_STATUS` - All HTTP status codes
+- `FILE_LIMITS.BYTES_PER_MB`, `FILE_LIMITS.MAX_FILENAME_LENGTH` - File constants
+- Use existing constants in `packages/api/src/common/constants/`
+
+#### 🚨 Zero Policy:
+- **No interface declarations allowed**
+- **No magic numbers allowed**  
+- **No console statements allowed**
+- **Every lint error must be fixed**
+
 ---
 
 <!-- Source: .ruler/bts.md -->

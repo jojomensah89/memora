@@ -22,7 +22,7 @@ export default function Page() {
             <div className="flex size-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
               <GalleryVerticalEnd className="size-4" />
             </div>
-            Memora 
+            Memora
           </Link>
           <MagicLinkForm
             description="Create your account with Google"

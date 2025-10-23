@@ -2,7 +2,18 @@ import { Effects } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 import { useControls } from "leva";
 import { Particles } from "./particles";
-import { VignetteShader } from "./shaders/vignetteShader";
+import { VignetteShader } from "./shaders/vignette-shader";
+
+const PARTICLE_SIZE_256 = 256;
+const PARTICLE_SIZE_512 = 512;
+const PARTICLE_SIZE_1024 = 1024;
+
+const CAMERA_POSITION_X = 1.262_978_312_331_458_9;
+const CAMERA_POSITION_Y = 2.664_606_471_394_044;
+const CAMERA_POSITION_Z = -1.817_899_374_328_891_4;
+const CAMERA_FOV = 50;
+const CAMERA_NEAR = 0.01;
+const CAMERA_FAR = 300;
 
 export const GL = ({ hovering }: { hovering: boolean }) => {
   const {
@@ -31,8 +42,8 @@ export const GL = ({ hovering }: { hovering: boolean }) => {
     opacity: { value: 0.8, min: 0, max: 1, step: 0.01 },
     planeScale: { value: 10.0, min: 0.1, max: 10, step: 0.1 },
     size: {
-      value: 512,
-      options: [256, 512, 1024],
+      value: PARTICLE_SIZE_512,
+      options: [PARTICLE_SIZE_256, PARTICLE_SIZE_512, PARTICLE_SIZE_1024],
     },
     showDebugPlane: { value: false },
     vignetteDarkness: { value: 1.5, min: 0, max: 2, step: 0.1 },
@@ -41,16 +52,13 @@ export const GL = ({ hovering }: { hovering: boolean }) => {
     manualTime: { value: 0, min: 0, max: 50, step: 0.01 },
   });
   return (
-    <div id="webgl" className="h-full w-full">
+    <div className="h-full w-full" id="webgl">
       <Canvas
         camera={{
-          position: [
-            1.262_978_312_331_458_9, 2.664_606_471_394_044,
-            -1.817_899_374_328_891_4,
-          ],
-          fov: 50,
-          near: 0.01,
-          far: 300,
+          position: [CAMERA_POSITION_X, CAMERA_POSITION_Y, CAMERA_POSITION_Z],
+          fov: CAMERA_FOV,
+          near: CAMERA_NEAR,
+          far: CAMERA_FAR,
         }}
       >
         {/* <Perf position="top-left" /> */}

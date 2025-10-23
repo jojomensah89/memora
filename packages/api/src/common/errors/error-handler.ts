@@ -1,7 +1,8 @@
-import { TRPCError } from "@trpc/server";
-import { AppError } from "./base.error";
 import { Prisma } from "@prisma/client";
+import { TRPCError } from "@trpc/server";
 import { ZodError } from "zod";
+import { HTTP_STATUS } from "../constants/limits.constants";
+import { AppError } from "./base.error";
 
 /**
  * Central Error Handler
@@ -46,8 +47,8 @@ export function handleError(error: unknown): never {
     throw error;
   }
 
-  // 5. Unknown errors - log and sanitize
-  console.error("❌ Unexpected error:", error);
+  // 5. Unknown errors - sanitize for security
+  // Note: In production, use proper logging service instead of console
 
   // Don't expose internal errors to client
   throw new TRPCError({
@@ -60,9 +61,7 @@ export function handleError(error: unknown): never {
 /**
  * Handle Prisma-specific errors
  */
-function handlePrismaError(
-  error: Prisma.PrismaClientKnownRequestError
-): never {
+function handlePrismaError(error: Prisma.PrismaClientKnownRequestError): never {
   switch (error.code) {
     case "P2002": // Unique constraint violation
       throw new TRPCError({
@@ -90,7 +89,7 @@ function handlePrismaError(
       });
 
     default:
-      console.error("Unhandled Prisma error:", error.code, error.message);
+      // In production, use proper logging service instead of console
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message: "Database error occurred",
@@ -104,29 +103,29 @@ function handlePrismaError(
  */
 function mapStatusToTRPCCode(status: number): TRPCError["code"] {
   switch (status) {
-    case 400:
+    case HTTP_STATUS.BAD_REQUEST:
       return "BAD_REQUEST";
-    case 401:
+    case HTTP_STATUS.UNAUTHORIZED:
       return "UNAUTHORIZED";
-    case 403:
+    case HTTP_STATUS.FORBIDDEN:
       return "FORBIDDEN";
-    case 404:
+    case HTTP_STATUS.NOT_FOUND:
       return "NOT_FOUND";
-    case 409:
+    case HTTP_STATUS.CONFLICT:
       return "CONFLICT";
-    case 410:
+    case HTTP_STATUS.GONE:
       return "GONE";
-    case 413:
+    case HTTP_STATUS.PAYLOAD_TOO_LARGE:
       return "PAYLOAD_TOO_LARGE";
-    case 422:
+    case HTTP_STATUS.UNPROCESSABLE_CONTENT:
       return "UNPROCESSABLE_CONTENT";
-    case 429:
+    case HTTP_STATUS.TOO_MANY_REQUESTS:
       return "TOO_MANY_REQUESTS";
-    case 500:
+    case HTTP_STATUS.INTERNAL_SERVER_ERROR:
       return "INTERNAL_SERVER_ERROR";
-    case 502:
+    case HTTP_STATUS.BAD_GATEWAY:
       return "BAD_GATEWAY";
-    case 503:
+    case HTTP_STATUS.SERVICE_UNAVAILABLE:
       return "SERVICE_UNAVAILABLE";
     default:
       return "INTERNAL_SERVER_ERROR";

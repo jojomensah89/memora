@@ -8,9 +8,7 @@ export const contextRouter = router({
       z
         .object({
           search: z.string().optional(),
-          type: z
-            .enum(["FILE", "URL", "GITHUB_REPO", "DOCUMENT"])
-            .optional(),
+          type: z.enum(["FILE", "URL", "GITHUB_REPO", "DOCUMENT"]).optional(),
           scope: z.enum(["LOCAL", "GLOBAL", "ORGANIZATION"]).optional(),
           tags: z.array(z.string()).optional(),
           chatId: z.string().optional(), // For checking selection state
@@ -277,17 +275,16 @@ export const contextRouter = router({
           data: { isSelected: !existing.isSelected },
         });
         return updated;
-      } else {
-        // Create new link (selected by default)
-        const created = await ctx.db.chatContext.create({
-          data: {
-            chatId: input.chatId,
-            contextItemId: input.contextItemId,
-            isSelected: true,
-          },
-        });
-        return created;
       }
+      // Create new link (selected by default)
+      const created = await ctx.db.chatContext.create({
+        data: {
+          chatId: input.chatId,
+          contextItemId: input.contextItemId,
+          isSelected: true,
+        },
+      });
+      return created;
     }),
 
   // Get selected context for chat (for message sending)

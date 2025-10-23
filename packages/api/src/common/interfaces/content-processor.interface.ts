@@ -5,14 +5,14 @@ import type { ContextType } from "@prisma/client";
  * Contract for processing different content types (files, URLs, GitHub, etc.)
  */
 
-export interface ProcessedContent {
+export type ProcessedContent = {
   content: string; // Extracted text
   rawContent?: string; // Original content if different
   tokens: number; // Estimated token count
   metadata?: Record<string, unknown>; // Type-specific metadata
-}
+};
 
-export interface IContentProcessor {
+export type IContentProcessor = {
   /**
    * The type of content this processor handles
    */
@@ -32,4 +32,4 @@ export interface IContentProcessor {
    * Estimate tokens for content
    */
   estimateTokens(content: string): number;
-}
+};

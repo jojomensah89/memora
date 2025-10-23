@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { trpc } from '@/utils/trpc';
-import { useParams } from 'next/navigation';
-import ChatWelcome from '@/components/chat/chat-welcome';
-import { useUser } from '@/hooks/use-user';
+import { useParams } from "next/navigation";
+import ChatWelcome from "@/components/chat/chat-welcome";
+import { useUser } from "@/hooks/use-user";
+import { trpc } from "@/utils/trpc";
 
 export default function ChatPage() {
   const params = useParams();
@@ -22,5 +22,5 @@ export default function ChatPage() {
     return <div>Chat not found</div>;
   }
 
-  return <ChatWelcome user={user} initialMessages={chat.messages} />;
+  return <ChatWelcome initialMessages={chat.messages} user={user} />;
 }

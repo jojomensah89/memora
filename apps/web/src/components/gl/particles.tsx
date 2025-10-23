@@ -3,8 +3,8 @@ import { createPortal, useFrame } from "@react-three/fiber";
 import * as easing from "maath/easing";
 import { useMemo, useRef, useState } from "react";
 import * as THREE from "three";
-import { DofPointsMaterial } from "./shaders/pointMaterial";
-import { SimulationMaterial } from "./shaders/simulationMaterial";
+import { DofPointsMaterial } from "./shaders/point-material";
+import { SimulationMaterial } from "./shaders/simulation-material";
 
 export function Particles({
   speed,
@@ -21,7 +21,7 @@ export function Particles({
   manualTime = 0,
   introspect = false,
   ...props
-}: {
+}: Readonly<{
   speed: number;
   // fov: number
   aperture: number;
@@ -36,7 +36,7 @@ export function Particles({
   useManualTime?: boolean;
   manualTime?: number;
   introspect?: boolean;
-}) {
+}>) {
   // Reveal animation state
   const revealStartTime = useRef<number | null>(null);
   const [isRevealing, setIsRevealing] = useState(true);

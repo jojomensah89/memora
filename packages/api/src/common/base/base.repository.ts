@@ -1,6 +1,5 @@
 import prisma from "@memora/db";
 import type { PrismaClient } from "@prisma/client";
-import { DatabaseError } from "../errors";
 
 /**
  * Base Repository
@@ -43,7 +42,10 @@ export abstract class BaseRepository<T = unknown> {
   /**
    * Common method: Check existence
    */
-  protected async exists(model: keyof PrismaClient, id: string): Promise<boolean> {
+  protected async exists(
+    model: keyof PrismaClient,
+    id: string
+  ): Promise<boolean> {
     return this.execute(async () => {
       const repository = this.prisma[model] as any;
       const count = await repository.count({
