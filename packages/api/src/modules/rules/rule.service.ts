@@ -18,11 +18,18 @@ export class RuleService extends BaseService {
    * Get all rules for user
    */
   async getAll(userId: string): Promise<RuleListResult> {
+    const logger = this.getLogger({ userId, action: 'getAll' });
+    const perf = this.getPerfLogger('rules.getAll', { userId });
+    
+    logger('Fetching all rules for user');
     const [rules, stats] = await Promise.all([
       this.repository.findAllByUser(userId),
       this.repository.getStats(userId),
     ]);
 
+    perf.end();
+    logger(`Found ${rules.length} rules for user`);
+    
     return { rules, stats };
   }
 
@@ -123,12 +130,28 @@ export class RuleService extends BaseService {
   }
 
   async toggleActive(userId: string, id: string) {
-    const rule = await this.repository.findById(id, userId);
-    if (!rule) {
-      throw new RuleNotFoundError("Rule not found");
-    }
+    const logger = this.getLogger({ userId, action: 'toggleActive' });
+    const perf = this.getPerfLogger('rules.toggleActive', { userId, ruleId: id });
+    
+    try {
+      logger('Toggling rule active status', `ruleId=${id}`);
+      
+      const rule = await this.repository.findById(id, userId);
+      if (!rule) {
+        throw new RuleNotFoundError("Rule not found");
+      }
 
-    return await this.repository.toggleActive(id, userId);
+      const result = await this.repository.toggleActive(id, userId);
+      perf.end();
+      logger('Rule active status toggled', `ruleId=${id}, isActive=${result.isActive}`);
+      
+      return result;
+    } catch (error) {
+      this.getErrorLogger({ userId, action: 'toggleActive', ruleId: id })(
+        'Failed to toggle rule active status', error
+      );
+      throw error;
+    }
   }
 
   async linkToChat(userId: string, ruleId: string, chatId: string) {

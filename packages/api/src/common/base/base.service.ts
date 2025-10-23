@@ -1,10 +1,41 @@
 import { ValidationError } from "../errors";
+import { errorLogger, perfLogger, type LogContext } from "../logger";
 
 /**
  * Base Service
  * Provides common business logic utilities
  */
 export abstract class BaseService {
+  /**
+   * Get logger with service context
+   */
+  protected getLogger(context?: Partial<LogContext>) {
+    return contextLogger({
+      module: this.constructor.name,
+      ...context,
+    });
+  }
+
+  /**
+   * Get error logger with context
+   */
+  protected getErrorLogger(context?: Partial<LogContext>) {
+    return (message: string, error: unknown) => 
+      errorLogger(message, error, {
+        module: this.constructor.name,
+        ...context,
+      });
+  }
+
+  /**
+   * Get performance logger
+   */
+  protected getPerfLogger(operation: string, context?: Partial<LogContext>) {
+    return perfLogger(operation, {
+      module: this.constructor.name,
+      ...context,
+    });
+  }
   /**
    * Validate required fields
    */
