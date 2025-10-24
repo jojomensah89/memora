@@ -113,8 +113,6 @@ function mapStatusToTRPCCode(status: number): TRPCError["code"] {
       return "NOT_FOUND";
     case HTTP_STATUS.CONFLICT:
       return "CONFLICT";
-    case HTTP_STATUS.GONE:
-      return "GONE";
     case HTTP_STATUS.PAYLOAD_TOO_LARGE:
       return "PAYLOAD_TOO_LARGE";
     case HTTP_STATUS.UNPROCESSABLE_CONTENT:

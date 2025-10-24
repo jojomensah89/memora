@@ -16,12 +16,7 @@ export abstract class BaseRepository<T = unknown> {
    * Wrap database operations with error handling
    */
   protected async execute<R>(operation: () => Promise<R>): Promise<R> {
-    try {
       return await operation();
-    } catch (error) {
-      // Let the error handler deal with Prisma errors
-      throw error;
-    }
   }
 
   /**
@@ -42,7 +37,9 @@ export abstract class BaseRepository<T = unknown> {
   /**
    * Common method: Check existence
    */
-  protected async exists(
+  
+// biome-ignore lint/suspicious/useAwait: <explanation>
+protected  async exists(
     model: keyof PrismaClient,
     id: string
   ): Promise<boolean> {

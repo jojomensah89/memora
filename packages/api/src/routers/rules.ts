@@ -17,7 +17,7 @@ export const rulesRouter = router({
     )
     .query(async ({ ctx, input }) => {
       const userId = ctx.session?.user?.id;
-      if (!userId) throw new Error("Unauthorized");
+      if (!userId) { throw new Error("Unauthorized"); }
 
       const rules = await ctx.db.rule.findMany({
         where: {
