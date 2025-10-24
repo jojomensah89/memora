@@ -25,10 +25,10 @@ import {
   PromptInputTextarea,
   PromptInputTools,
 } from "@/components/ai-elements/prompt-input";
-import { GL } from "@/components/gl";
+import { Gl } from "@/components/gl";
 import { useUser } from "@/hooks/use-user";
 import { models } from "@/lib/utils";
-import { trpc } from "@/utils/trpc";
+import { apiClient } from "@/utils/api-client";
 
 const ChatWelcome = () => {
   const [prompt, setPrompt] = useState("");
@@ -39,7 +39,12 @@ const ChatWelcome = () => {
 
   const createChatMutation = useMutation({
     mutationFn: async (initialMessage: string) =>
-      trpc.chat.createChat.mutate({ initialMessage }),
+      apiClient.post<{ id: string }>("/api/chats", {
+        initialMessage,
+        modelId: model,
+        useWebSearch,
+        attachments: [],
+      }),
     onSuccess: (data) => {
       router.push(`/chat/${data.id}`);
     },
@@ -55,7 +60,7 @@ const ChatWelcome = () => {
     <div className="relative min-h-screen bg-background">
       {/* 3D Background - Fixed position behind everything */}
       <div className="fixed inset-0 z-0">
-        <GL hovering={false} />
+        <Gl hovering={false} />
       </div>
 
       {/* Main Content - Layered above background */}
