@@ -74,3 +74,33 @@ export class RateLimitError extends AppError {
     super(message, cause);
   }
 }
+
+export class BadRequestError extends AppError {
+  statusCode = 400;
+  code = "BAD_REQUEST";
+  isOperational = true;
+
+  constructor(message = "Bad request", cause?: unknown) {
+    super(message, cause);
+  }
+}
+
+export class RequestTimeoutError extends AppError {
+  statusCode = 408;
+  code = "REQUEST_TIMEOUT";
+  isOperational = true;
+
+  constructor(message = "Request timeout", cause?: unknown) {
+    super(message, cause);
+  }
+}
+
+export class UnprocessableEntityError extends AppError {
+  statusCode = 422;
+  code = "UNPROCESSABLE_ENTITY";
+  isOperational = true;
+
+  constructor(message = "Cannot process the request", cause?: unknown) {
+    super(message, cause);
+  }
+}

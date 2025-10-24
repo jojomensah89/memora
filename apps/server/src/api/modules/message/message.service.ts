@@ -32,6 +32,24 @@ export class MessageService extends BaseService {
     super();
   }
 
+  async create(input: {
+    chatId: string;
+    userId: string;
+    content: string;
+    role: "user" | "assistant" | "system";
+  }): Promise<{ id: string }> {
+    // Simplified create method for streaming
+    const message = await this.repository.createMessageWithAttachments({
+      content: input.content,
+      role: input.role,
+      chatId: input.chatId,
+      metadata: undefined,
+      attachments: [],
+    });
+
+    return { id: message.id };
+  }
+
   async createMessage(
     userId: string,
     input: CreateMessageInput

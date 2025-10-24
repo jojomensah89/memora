@@ -13,6 +13,25 @@ export class TokenUsageService extends BaseService {
     super();
   }
 
+  async create(input: {
+    userId: string;
+    provider: string;
+    modelId: string;
+    inputTokens: number;
+    outputTokens: number;
+    chatId: string;
+  }): Promise<void> {
+    // Simplified create method for streaming (no validation for performance)
+    await this.repository.createTokenUsage({
+      provider: input.provider as never,
+      modelId: input.modelId,
+      inputTokens: input.inputTokens,
+      outputTokens: input.outputTokens,
+      chatId: input.chatId,
+      messageId: undefined,
+    });
+  }
+
   async trackTokenUsage(userId: string, input: CreateTokenUsageInput) {
     const { provider, modelId, inputTokens, outputTokens, chatId, messageId } =
       input;

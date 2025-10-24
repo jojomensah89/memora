@@ -359,4 +359,22 @@ export class ChatService extends BaseService {
       } satisfies CreateChatAttachmentData;
     });
   }
+
+  async updateChat(
+    userId: string,
+    input: { id: string; title?: string; modelId?: string }
+  ) {
+    this.validateRequired(input.id, "Chat ID");
+
+    // Verify ownership
+    const chat = await this.getChatById(input.id, userId);
+    if (!chat) {
+      throw new ChatNotFoundError("Chat not found");
+    }
+
+    return this.repository.updateChat(input.id, {
+      title: input.title,
+      model: input.modelId,
+    });
+  }
 }

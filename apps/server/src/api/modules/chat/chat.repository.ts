@@ -295,4 +295,29 @@ export class ChatRepository extends BaseRepository<ChatWithMessages> {
       throw new DatabaseError("Failed to fetch attachments", error);
     }
   }
+
+  async updateLastActivity(chatId: string): Promise<void> {
+    try {
+      await this.prisma.chat.update({
+        where: { id: chatId },
+        data: { updatedAt: new Date() },
+      });
+    } catch (error) {
+      throw new DatabaseError("Failed to update chat activity", error);
+    }
+  }
+
+  async updateChat(
+    chatId: string,
+    data: { title?: string; model?: string }
+  ): Promise<Chat> {
+    try {
+      return await this.prisma.chat.update({
+        where: { id: chatId },
+        data,
+      });
+    } catch (error) {
+      throw new DatabaseError("Failed to update chat", error);
+    }
+  }
 }

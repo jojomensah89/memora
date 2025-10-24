@@ -4,6 +4,7 @@ import chatShareRoutes from "./chat-share.routes";
 import contextRoutes from "./context.routes";
 import messageRoutes from "./message.routes";
 import rulesRoutes from "./rules.routes";
+import streamingRoutes from "./streaming.routes";
 import tokenUsageRoutes from "./token-usage.routes";
 
 export function setupRoutes(app: Hono) {
@@ -28,6 +29,7 @@ export function setupRoutes(app: Hono) {
   });
 
   // Mount feature routes
+  app.route("/api/chat", streamingRoutes); // MUST be before /api/chats for proper routing
   app.route("/api/chats", chatRoutes);
   app.route("/api/rules", rulesRoutes);
   app.route("/api/context-engine", contextRoutes);

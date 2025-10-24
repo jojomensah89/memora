@@ -44,3 +44,23 @@ export class ServiceUnavailableError extends AppError {
     super(message, cause);
   }
 }
+
+export class GatewayTimeoutError extends AppError {
+  statusCode = 504;
+  code = "GATEWAY_TIMEOUT";
+  isOperational = true;
+
+  constructor(message = "Gateway timeout", cause?: unknown) {
+    super(message, cause);
+  }
+}
+
+export class NetworkError extends AppError {
+  statusCode = 500;
+  code = "NETWORK_ERROR";
+  isOperational = true;
+
+  constructor(message = "Network error occurred", cause?: unknown) {
+    super(message, cause);
+  }
+}

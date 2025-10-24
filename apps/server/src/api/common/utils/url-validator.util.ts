@@ -53,16 +53,6 @@ export function validateUrl(urlString: string): URL {
  * Check if hostname is a private IP
  */
 function isPrivateIP(hostname: string): boolean {
-  // Check for IPv4 private ranges
-  const privateIPv4Regex =
-    /^(10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.|127\.)/;
-
-  // Check for IPv4 link-local
-  const linkLocalIPv4Regex = /^169\.254\./;
-
-  // Check for IPv6 private and link-local ranges
-  const privateIPv6Regex = /^(::1$|[fF][cCdD][0-9a-fA-F]{0,2}:|[fF][eE]80:)/;
-
   return (
     privateIPv4Regex.test(hostname) ||
     linkLocalIPv4Regex.test(hostname) ||
