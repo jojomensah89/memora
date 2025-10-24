@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
-import ChatWelcome from "@/components/chat/chat-welcome";
+import ChatWelcome from "@/components/auth/chat/chat-welcome";
 import { useUser } from "@/hooks/use-user";
 import { apiClient } from "@/utils/api-client";
 

@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 
 export default function Page() {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background to-secondary p-4">
+    <main className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md space-y-6 border-border p-8 text-center shadow-lg">
         <div className="flex justify-center">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">

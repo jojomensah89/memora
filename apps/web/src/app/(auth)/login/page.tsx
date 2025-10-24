@@ -6,7 +6,7 @@ import { Gl } from "@/components/gl";
 
 export default function Page() {
   return (
-    <div className="relative min-h-svh">
+    <div className="relative min-h-svh bg-background">
       {/* 3D Background - Fixed position behind everything */}
       <div className="fixed inset-0 z-0">
         <Gl hovering={false} />
