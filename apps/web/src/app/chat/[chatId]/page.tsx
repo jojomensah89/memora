@@ -1,17 +1,20 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import ChatWelcome from "@/components/chat/chat-welcome";
 import { useUser } from "@/hooks/use-user";
-import { trpc } from "@/utils/trpc";
+import { apiClient } from "@/utils/api-client";
 
 export default function ChatPage() {
   const params = useParams();
   const chatId = params.chatId as string;
   const { user } = useUser();
 
-  const { data: chat, isLoading } = trpc.chat.getChat.useQuery({
-    id: chatId,
+  const { data: chat, isLoading } = useQuery({
+    queryKey: ["chat", chatId],
+    queryFn: () => apiClient.get(`/api/chats/${chatId}`),
+    enabled: !!chatId,
   });
 
   if (isLoading) {

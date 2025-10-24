@@ -15,7 +15,7 @@ const CAMERA_FOV = 50;
 const CAMERA_NEAR = 0.01;
 const CAMERA_FAR = 300;
 
-export const GL = ({ hovering }: { hovering: boolean }) => {
+export const Gl = ({ hovering }: { hovering: boolean }) => {
   const {
     speed,
     focus,

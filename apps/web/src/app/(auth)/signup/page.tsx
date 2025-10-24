@@ -2,14 +2,14 @@
 import { GalleryVerticalEnd } from "lucide-react";
 import Link from "next/link";
 import MagicLinkForm from "@/components/auth/magic-link-form";
-import { GL } from "@/components/gl";
+import { Gl } from "@/components/gl";
 
 export default function Page() {
   return (
     <div className="relative min-h-svh">
       {/* 3D Background - Fixed position behind everything */}
       <div className="fixed inset-0 z-0">
-        <GL hovering={false} />
+        <Gl hovering={false} />
       </div>
 
       {/* Content - Layered above background */}
