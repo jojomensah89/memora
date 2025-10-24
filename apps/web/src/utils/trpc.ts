@@ -1,7 +1,4 @@
-import type { AppRouter } from "@memora/api/routers/index";
 import { QueryCache, QueryClient } from "@tanstack/react-query";
-import { createTRPCClient, httpBatchLink } from "@trpc/client";
-import { createTRPCOptionsProxy } from "@trpc/tanstack-react-query";
 import { toast } from "sonner";
 
 export const queryClient = new QueryClient({
@@ -19,21 +16,82 @@ export const queryClient = new QueryClient({
   }),
 });
 
-const trpcClient = createTRPCClient<AppRouter>({
-  links: [
-    httpBatchLink({
-      url: `${process.env.NEXT_PUBLIC_SERVER_URL}/trpc`,
-      fetch(url, options) {
-        return fetch(url, {
-          ...options,
-          credentials: "include",
-        });
-      },
-    }),
-  ],
-});
+// Simple API client for fetch-based requests
+export const apiClient = {
+  async get<T>(endpoint: string, init?: RequestInit): Promise<T> {
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_SERVER_URL}${endpoint}`,
+      {
+        method: "GET",
+        credentials: "include",
+        ...init,
+      }
+    );
 
-export const trpc = createTRPCOptionsProxy<AppRouter>({
-  client: trpcClient,
-  queryClient,
-});
+    if (!response.ok) {
+      throw new Error(`API request failed: ${response.statusText}`);
+    }
+
+    return response.json();
+  },
+
+  async post<T>(endpoint: string, body?: any, init?: RequestInit): Promise<T> {
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_SERVER_URL}${endpoint}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: body ? JSON.stringify(body) : undefined,
+        ...init,
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`API request failed: ${response.statusText}`);
+    }
+
+    return response.json();
+  },
+
+  async put<T>(endpoint: string, body?: any, init?: RequestInit): Promise<T> {
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_SERVER_URL}${endpoint}`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: body ? JSON.stringify(body) : undefined,
+        ...init,
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`API request failed: ${response.statusText}`);
+    }
+
+    return response.json();
+  },
+
+  async delete<T>(endpoint: string, init?: RequestInit): Promise<T> {
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_SERVER_URL}${endpoint}`,
+      {
+        method: "DELETE",
+        credentials: "include",
+        ...init,
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`API request failed: ${response.statusText}`);
+    }
+
+    return response.json();
+  },
+};
+
+// Legacy trpc export to avoid breaking imports - to be removed
+export const trpc = {
+  // TODO: Replace trpc calls with apiClient calls
+};

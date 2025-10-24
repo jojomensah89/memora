@@ -6,7 +6,7 @@ const TWO = 2;
 const ONE_FLOAT = 1.0;
 const TEXTURE_SIZE = 512;
 const COMPONENTS = 4;
-const LOOP_PERIOD_FACTOR = 6.283_185_307_18;
+const _LOOP_PERIOD_FACTOR = 6.283_185_307_18;
 
 // Function to generate equally distributed points on a plane
 function getPlane(

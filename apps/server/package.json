@@ -11,14 +11,12 @@
   },
   "dependencies": {
     "hono": "catalog:",
-    "@trpc/server": "catalog:",
-    "@hono/trpc-server": "^0.4.0",
     "better-auth": "catalog:",
     "ai": "catalog:",
     "@ai-sdk/google": "catalog:",
     "dotenv": "catalog:",
     "zod": "catalog:",
-    "@memora/api": "workspace:*",
+
     "@memora/auth": "workspace:*",
     "@memora/db": "workspace:*"
   },
