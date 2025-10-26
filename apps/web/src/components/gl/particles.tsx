@@ -1,11 +1,10 @@
-import * as THREE from "three";
-import { useMemo, useState, useRef } from "react";
-import { createPortal, useFrame } from "@react-three/fiber";
 import { useFBO } from "@react-three/drei";
-
+import { createPortal, useFrame } from "@react-three/fiber";
+import * as easing from "maath/easing";
+import { useMemo, useRef, useState } from "react";
+import * as THREE from "three";
 import { DofPointsMaterial } from "./shaders/point-material";
 import { SimulationMaterial } from "./shaders/simulation-material";
-import * as easing from "maath/easing";
 
 export function Particles({
   speed,
@@ -43,9 +42,10 @@ export function Particles({
   const [isRevealing, setIsRevealing] = useState(true);
   const revealDuration = 3.5; // seconds
   // Create simulation material with scale parameter
-  const simulationMaterial = useMemo(() => {
-    return new SimulationMaterial(planeScale);
-  }, [planeScale]);
+  const simulationMaterial = useMemo(
+    () => new SimulationMaterial(planeScale),
+    [planeScale]
+  );
 
   const target = useFBO(size, size, {
     minFilter: THREE.NearestFilter,
@@ -64,7 +64,7 @@ export function Particles({
 
   const [scene] = useState(() => new THREE.Scene());
   const [camera] = useState(
-    () => new THREE.OrthographicCamera(-1, 1, 1, -1, 1 / Math.pow(2, 53), 1)
+    () => new THREE.OrthographicCamera(-1, 1, 1, -1, 1 / 2 ** 53, 1)
   );
   const [positions] = useState(
     () =>
@@ -88,11 +88,11 @@ export function Particles({
   }, [size]);
 
   useFrame((state, delta) => {
-    if (!dofPointsMaterial || !simulationMaterial) return;
+    if (!(dofPointsMaterial && simulationMaterial)) return;
 
     state.gl.setRenderTarget(target);
     state.gl.clear();
-    // @ts-ignore
+    // @ts-expect-error
     state.gl.render(scene, camera);
     state.gl.setRenderTarget(null);
 
@@ -109,7 +109,7 @@ export function Particles({
     const revealProgress = Math.min(revealElapsed / revealDuration, 1.0);
 
     // Ease out the reveal animation
-    const easedProgress = 1 - Math.pow(1 - revealProgress, 3);
+    const easedProgress = 1 - (1 - revealProgress) ** 3;
 
     // Map progress to reveal factor (0 = fully hidden, higher values = more revealed)
     // We want to start from center (0) and expand outward (higher values)
@@ -147,23 +147,23 @@ export function Particles({
   return (
     <>
       {createPortal(
-        // @ts-ignore
+        // @ts-expect-error
         <mesh material={simulationMaterial}>
           <bufferGeometry>
             <bufferAttribute
-              attach="attributes-position"
               args={[positions, 3]}
+              attach="attributes-position"
             />
-            <bufferAttribute attach="attributes-uv" args={[uvs, 2]} />
+            <bufferAttribute args={[uvs, 2]} attach="attributes-uv" />
           </bufferGeometry>
         </mesh>,
-        // @ts-ignore
+        // @ts-expect-error
         scene
       )}
       {/* @ts-ignore */}
       <points material={dofPointsMaterial} {...props}>
         <bufferGeometry>
-          <bufferAttribute attach="attributes-position" args={[particles, 3]} />
+          <bufferAttribute args={[particles, 3]} attach="attributes-position" />
         </bufferGeometry>
       </points>
 

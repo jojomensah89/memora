@@ -16,11 +16,29 @@ export const queryClient = new QueryClient({
   }),
 });
 
+// Helper function to add version prefix to API endpoints
+const withVersion = (endpoint: string): string => {
+  // Don't version these special endpoints
+  const unversionedPaths = ["/api/health", "/api/auth"];
+  if (unversionedPaths.some((path) => endpoint.startsWith(path))) {
+    return endpoint;
+  }
+
+  // Add /api/v1 prefix to all other API routes
+  const hasApiPrefix = endpoint.startsWith("/api/");
+  if (hasApiPrefix) {
+    return endpoint.replace("/api/", "/api/v1/");
+  }
+
+  return endpoint;
+};
+
 // REST API client for fetch-based requests
 export const apiClient = {
   async get<T>(endpoint: string, init?: RequestInit): Promise<T> {
+    const versionedEndpoint = withVersion(endpoint);
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_SERVER_URL}${endpoint}`,
+      `${process.env.NEXT_PUBLIC_SERVER_URL}${versionedEndpoint}`,
       {
         method: "GET",
         credentials: "include",
@@ -36,8 +54,9 @@ export const apiClient = {
   },
 
   async post<T>(endpoint: string, body?: any, init?: RequestInit): Promise<T> {
+    const versionedEndpoint = withVersion(endpoint);
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_SERVER_URL}${endpoint}`,
+      `${process.env.NEXT_PUBLIC_SERVER_URL}${versionedEndpoint}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -55,8 +74,9 @@ export const apiClient = {
   },
 
   async put<T>(endpoint: string, body?: any, init?: RequestInit): Promise<T> {
+    const versionedEndpoint = withVersion(endpoint);
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_SERVER_URL}${endpoint}`,
+      `${process.env.NEXT_PUBLIC_SERVER_URL}${versionedEndpoint}`,
       {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -74,8 +94,9 @@ export const apiClient = {
   },
 
   async delete<T>(endpoint: string, init?: RequestInit): Promise<T> {
+    const versionedEndpoint = withVersion(endpoint);
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_SERVER_URL}${endpoint}`,
+      `${process.env.NEXT_PUBLIC_SERVER_URL}${versionedEndpoint}`,
       {
         method: "DELETE",
         credentials: "include",
