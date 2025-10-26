@@ -1,5 +1,6 @@
 "use client";
 import { useForm } from "@tanstack/react-form";
+import type { Route } from "next";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -35,7 +36,7 @@ interface MagicLinkFormProps extends React.ComponentProps<"div"> {
   submittingText?: string;
   successMessage?: string;
   footerLinkText?: string;
-  footerLinkHref?: string;
+  footerLinkHref?: Route;
 }
 
 export default function MagicLinkForm({
@@ -81,7 +82,7 @@ export default function MagicLinkForm({
     validators: {
       onSubmit: showNameField
         ? z.object({
-            email: z.string().email("Invalid email address"),
+            email: z.email("Invalid email address"),
             name: z
               .string()
               .min(MIN_NAME_LENGTH)
@@ -89,7 +90,8 @@ export default function MagicLinkForm({
               .nonempty("Name is required"),
           })
         : z.object({
-            email: z.string().email("Invalid email address"),
+            email: z.email("Invalid email address"),
+            name: z.string(),
           }),
     },
   });
