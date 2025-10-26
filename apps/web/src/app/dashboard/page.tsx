@@ -22,7 +22,7 @@ export default async function DashboardPage() {
   });
 
   return (
-    <div>
+    <div className="bg-background">
       <h1>Dashboard</h1>
       <p>Welcome {session.user.name}</p>
       <Dashboard customerState={customerState} />
