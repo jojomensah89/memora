@@ -1,4 +1,3 @@
-import { Perf } from "r3f-perf";
 import { Effects } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 import { useControls } from "leva";
@@ -44,35 +43,36 @@ export const Gl = ({ hovering }: { hovering: boolean }) => {
   return (
     <div className="relative h-full w-full">
       <Canvas
-        className="absolute inset-0 h-full w-full"
-        style={{ pointerEvents: "none" }}
         camera={{
           position: [
-            1.2629783123314589, 2.664606471394044, -1.8178993743288914,
+            1.262_978_312_331_458_9, 2.664_606_471_394_044,
+            -1.817_899_374_328_891_4,
           ],
           fov: 50,
           near: 0.01,
           far: 300,
         }}
+        className="absolute inset-0 h-full w-full"
+        style={{ pointerEvents: "none" }}
       >
         {/* <Perf position="top-left" /> */}
-        <color attach="background" args={["#000"]} />
+        <color args={["#000"]} attach="background" />
         <Particles
-          speed={speed}
           aperture={aperture}
           focus={focus}
-          size={size}
-          noiseScale={noiseScale}
+          introspect={hovering}
+          manualTime={manualTime}
           noiseIntensity={noiseIntensity}
-          timeScale={timeScale}
-          pointSize={pointSize}
+          noiseScale={noiseScale}
           opacity={opacity}
           planeScale={planeScale}
+          pointSize={pointSize}
+          size={size}
+          speed={speed}
+          timeScale={timeScale}
           useManualTime={useManualTime}
-          manualTime={manualTime}
-          introspect={hovering}
         />
-        <Effects multisamping={0} disableGamma>
+        <Effects disableGamma multisamping={0}>
           <shaderPass
             args={[VignetteShader]}
             uniforms-darkness-value={vignetteDarkness}

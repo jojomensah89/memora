@@ -18,8 +18,10 @@
     "@ai-sdk/openai": "catalog:",
     "dotenv": "catalog:",
     "zod": "catalog:",
+    "resend": "^6.2.2",
+    "@polar-sh/better-auth": "catalog:",
+    "@polar-sh/sdk": "^0.34.16",
 
-    "@memora/auth": "workspace:*",
     "@memora/db": "workspace:*",
     "@prisma/client": "catalog:"
   },

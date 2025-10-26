@@ -1,0 +1,10 @@
+{
+  "enabledMcpjsonServers": [
+    "context7",
+    "shadcn",
+    "better-auth",
+    "chrome-devtools",
+    "playwright"
+  ],
+  "enableAllProjectMcpServers": true
+}

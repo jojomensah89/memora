@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
-import ChatWelcome from "@/components/auth/chat/chat-welcome";
+import ChatInterface from "@/components/layout/chat-interface";
 import { useUser } from "@/hooks/use-user";
 import { apiClient } from "@/utils/api-client";
 
@@ -25,5 +25,5 @@ export default function ChatPage() {
     return <div>Chat not found</div>;
   }
 
-  return <ChatWelcome initialMessages={chat.messages} user={user} />;
+  return <ChatInterface initialMessages={chat.messages} user={user} />;
 }

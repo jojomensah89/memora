@@ -64,13 +64,12 @@ export default function MagicLinkForm({
         {
           email: value.email,
           name: showNameField ? value.name : undefined,
-          callbackURL: "/chat",
-          newUserCallbackURL: "/success",
+          callbackURL: "/context",
+          newUserCallbackURL: "/context",
           errorCallbackURL: "/error",
         },
         {
           onSuccess: () => {
-            router.push("/chat");
             toast.success(successMessage);
           },
           onError: (error) => {

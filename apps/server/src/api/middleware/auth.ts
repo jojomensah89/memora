@@ -1,5 +1,5 @@
-import { auth } from "@memora/auth";
 import type { Context, Next } from "hono";
+import { auth } from "../../lib/auth";
 
 export function authMiddleware(c: Context, next: Next) {
   return async () => {

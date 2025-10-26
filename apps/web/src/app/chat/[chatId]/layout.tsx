@@ -16,7 +16,7 @@ export default async function ChatLayout({
   });
 
   if (!session?.data?.user?.id) {
-    redirect("/magic");
+    redirect("/login");
   }
 
   return (

@@ -1,5 +1,5 @@
-// Export the new Hono app
-export { default as createApp } from "./app";
+// Export the configured Hono app
+export { default as app, default } from "./app";
 
 // Re-export types and utilities for frontend use
 export * from "./modules/attachment/attachment.inputs";
