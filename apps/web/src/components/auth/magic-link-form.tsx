@@ -64,13 +64,16 @@ export default function MagicLinkForm({
         {
           email: value.email,
           name: showNameField ? value.name : undefined,
-          callbackURL: "/context",
-          newUserCallbackURL: "/context",
-          errorCallbackURL: "/error",
+          callbackURL: "http://localhost:3001/dashboard",
+          // newUserCallbackURL: "/dashboard",
+          // errorCallbackURL: "/login",
         },
         {
           onSuccess: () => {
-            toast.success(successMessage);
+            toast.success("Magic link sent! Check your email.");
+            router.push(
+              `/check-email?email=${encodeURIComponent(value.email)}`
+            );
           },
           onError: (error) => {
             toast.error(error.error.message || error.error.statusText);
