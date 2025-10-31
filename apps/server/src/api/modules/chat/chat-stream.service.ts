@@ -35,16 +35,8 @@ export class ChatStreamService extends BaseService {
   async generateResponse(
     input: StreamingChatInput
   ): Promise<StreamingChatResult> {
-    const {
-      chatId,
-      userId,
-      message,
-      provider,
-      modelId,
-      context,
-      rules,
-      attachments,
-    } = input;
+    const { chatId, userId, message, provider, modelId, context, rules } =
+      input;
 
     try {
       // Get the appropriate AI agent
@@ -56,6 +48,9 @@ export class ChatStreamService extends BaseService {
       const contextText = this.prepareContext(context || []);
 
       // Prepare tools
+
+      // Placeholder for AI response
+      const result = { text: "This is a placeholder AI response." };
 
       // Count tokens
       const inputTokens = estimateTokens(message + systemPrompt + contextText);
@@ -71,13 +66,13 @@ export class ChatStreamService extends BaseService {
       );
 
       // Create the assistant message
-      const newMessageId = await this.createAssistantMessage(
+      const newMessageId = await this.createAssistantMessage({
         chatId,
         userId,
-        result.text,
+        content: result.text,
         inputTokens,
-        outputTokens
-      );
+        outputTokens,
+      });
 
       // Track token usage
       await this.trackTokenUsage(userId, {
@@ -140,23 +135,23 @@ export class ChatStreamService extends BaseService {
       .join("\n\n");
   }
 
-  private async createAssistantMessage(
-    chatId: string,
-    _userId: string,
-    content: string,
-    inputTokens: number,
-    outputTokens: number
-  ): Promise<string> {
+  private async createAssistantMessage(data: {
+    chatId: string;
+    userId: string;
+    content: string;
+    inputTokens: number;
+    outputTokens: number;
+  }): Promise<string> {
     try {
       const message = await this.prisma.message.create({
         data: {
-          content,
+          content: data.content,
           role: "assistant",
-          chatId,
+          chatId: data.chatId,
           metadata: {
-            inputTokens,
-            outputTokens,
-            totalTokens: inputTokens + outputTokens,
+            inputTokens: data.inputTokens,
+            outputTokens: data.outputTokens,
+            totalTokens: data.inputTokens + data.outputTokens,
           },
         },
       });

@@ -27,14 +27,24 @@
     "rules": {
       "performance": {
         "noNamespaceImport": "off",
-        "noBarrelFile": "off"
+        "noBarrelFile": "off",
+        "noImgElement": "off"
       },
       "style": {
         "noMagicNumbers": "off"
       },
       "suspicious": {
         "useAwait": "off",
-        "noExplicitAny": "off"
+        "noExplicitAny": "off",
+        "noUnknownAtRules": "off",
+        "noArrayIndexKey": "off"
+      },
+      "nursery": {
+        "useImageSize": "off"
+      },
+      "a11y": {
+        "useSemanticElements": "off",
+        "noNoninteractiveElementToInteractiveRole": "off"
       }
     }
   }

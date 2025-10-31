@@ -9,7 +9,7 @@ export default async function ChatLayout({
   children: React.ReactNode;
 }>) {
   // Middleware already ensures user is authenticated
-  const session = await authClient.getSession({
+  const _session = await authClient.getSession({
     fetchOptions: {
       headers: await headers(),
     },

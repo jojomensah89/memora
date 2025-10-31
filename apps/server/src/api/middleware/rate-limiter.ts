@@ -84,7 +84,7 @@ export const rateLimiter =
       });
 
       await next();
-    } catch (error) {
+    } catch (_error) {
       await next();
     }
   };

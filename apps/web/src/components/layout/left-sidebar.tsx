@@ -16,7 +16,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { useUser } from "@/hooks/use-user";
-import { useUIStore } from "@/stores/useUIStore";
+import { useUIStore } from "@/stores/use-ui-store";
 import { NavUser } from "../nav-user";
 
 type Chat = {

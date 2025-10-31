@@ -1,12 +1,9 @@
-import { Prisma, PrismaClient } from "../prisma/generated/client";
+import { PrismaClient } from "../prisma/generated/client";
 
 const prisma = new PrismaClient();
 
 // Export prisma instance as default
 export default prisma;
 
-// Export Prisma namespace for types and error classes
-export { Prisma };
-
-// Re-export PrismaClient for type usage
-export { PrismaClient };
+// Export Prisma types and client from package
+export { Prisma, PrismaClient } from "../prisma/generated/client";

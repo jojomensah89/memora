@@ -80,7 +80,7 @@ app.post(
 app.delete(
   "/:id",
   withAuth(async (c, _authUser) => {
-    const { id } = c.req.param();
+    const { id: _id } = c.req.param();
 
     // TODO: Implement actual message deletion logic
     return c.text("", 204);

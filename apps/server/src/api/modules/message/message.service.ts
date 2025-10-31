@@ -28,8 +28,11 @@ import type {
 } from "./message.types";
 
 export class MessageService extends BaseService {
-  constructor(private readonly repository: MessageRepository) {
+  private readonly repository: MessageRepository;
+
+  constructor(repository: MessageRepository) {
     super();
+    this.repository = repository;
   }
 
   async create(input: {

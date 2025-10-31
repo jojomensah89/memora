@@ -94,7 +94,7 @@ app.get("/:token", async (c) => {
 app.delete(
   "/:token",
   withAuth(async (c, _authUser) => {
-    const { token } = c.req.param();
+    const { token: _token } = c.req.param();
 
     // TODO: Implement actual share link deletion logic
     return c.text("", 204);

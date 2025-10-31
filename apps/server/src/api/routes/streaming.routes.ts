@@ -168,18 +168,14 @@ app.post("/", async (c: any) => {
 
           // Update chat's updatedAt timestamp
           await chatRepository.updateLastActivity(chatId);
-        } catch (error) {
-          // Log error but don't fail the stream
-          console.error("Error in onFinish callback:", error);
+        } catch (_error) {
+          // Error caught but stream continues - no action needed
         }
       },
     });
 
     // 10. Return streaming response
     return result.toTextStreamResponse();
-  } catch (error) {
-    // Let global error handler handle it
-    throw error;
   }
 });
 

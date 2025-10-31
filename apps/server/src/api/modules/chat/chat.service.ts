@@ -52,13 +52,22 @@ type PromptEnhancer = {
 };
 
 export class ChatService extends BaseService {
+  private readonly repository: ChatRepository;
+  private readonly enhancer?: PromptEnhancer;
+  private readonly contextService?: any;
+  private readonly rulesService?: any;
+
   constructor(
-    private readonly repository: ChatRepository,
-    private readonly enhancer?: PromptEnhancer,
-    private readonly contextService?: any,
-    private readonly rulesService?: any
+    repository: ChatRepository,
+    enhancer?: PromptEnhancer,
+    contextService?: any,
+    rulesService?: any
   ) {
     super();
+    this.repository = repository;
+    this.enhancer = enhancer;
+    this.contextService = contextService;
+    this.rulesService = rulesService;
   }
 
   getAvailableModels(): ModelDescriptor[] {
@@ -87,11 +96,11 @@ export class ChatService extends BaseService {
 
     if (attachments.length > 0) {
       validateFileArray(attachments.map(({ size }) => ({ size })));
-      attachments.forEach((attachment) => {
+      for (const attachment of attachments) {
         validateFilename(attachment.name);
         validateFileSize(attachment.size);
         validateMimeType(attachment.mimeType);
-      });
+      }
     }
 
     const modelConfig = getModelConfig(input.modelId);
