@@ -9,8 +9,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Suspense } from "react";
 
-export default function CheckEmailPage() {
+function CheckEmailDisplay() {
   const searchParams = useSearchParams();
   const email = searchParams.get("email") || "your email";
 
@@ -36,5 +37,13 @@ export default function CheckEmailPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function CheckEmailPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <CheckEmailDisplay />
+    </Suspense>
   );
 }

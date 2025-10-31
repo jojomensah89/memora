@@ -20,7 +20,6 @@ import {
 } from "@/components/ui/field";
 import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
-import Loader from "../loader";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
@@ -52,7 +51,6 @@ export default function MagicLinkForm({
   ...props
 }: Readonly<MagicLinkFormProps>) {
   const router = useRouter();
-  const { isPending } = authClient.useSession();
 
   const form = useForm({
     defaultValues: {
@@ -98,9 +96,6 @@ export default function MagicLinkForm({
     },
   });
 
-  if (isPending) {
-    return <Loader />;
-  }
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>

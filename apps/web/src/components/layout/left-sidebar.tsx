@@ -36,7 +36,7 @@ type LeftSidebarProps = {
 const LeftSidebar: React.FC<LeftSidebarProps> = ({ chats }) => {
   const { setActiveChatId, activeChatId } = useUIStore();
   const router = useRouter();
-  const user = useUser();
+  const { user, isPending } = useUser();
 
   const handleNewChat = () => {
     // Navigate to new chat
@@ -138,7 +138,16 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ chats }) => {
           </SidebarMenu>
         </div>
       </SidebarContent>
-      <SidebarFooter>{user && <NavUser user={user} />}</SidebarFooter>
+      <SidebarFooter>
+      {isPending ? (
+        <div className="flex items-center gap-2 p-2">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+          <div className="text-sm text-muted-foreground">Loading...</div>
+        </div>
+      ) : (
+        user && <NavUser user={user} />
+      )}
+    </SidebarFooter>
     </Sidebar>
   );
 };

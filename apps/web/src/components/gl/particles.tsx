@@ -94,7 +94,6 @@ export function Particles({
 
     state.gl.setRenderTarget(target);
     state.gl.clear();
-    // @ts-expect-error
     state.gl.render(scene, camera);
     state.gl.setRenderTarget(null);
 
@@ -149,7 +148,6 @@ export function Particles({
   return (
     <>
       {createPortal(
-        // @ts-expect-error
         <mesh material={simulationMaterial}>
           <bufferGeometry>
             <bufferAttribute
@@ -159,10 +157,9 @@ export function Particles({
             <bufferAttribute args={[uvs, 2]} attach="attributes-uv" />
           </bufferGeometry>
         </mesh>,
-        // @ts-expect-error
+    
         scene
       )}
-      {/* @ts-ignore */}
       <points material={dofPointsMaterial} {...props}>
         <bufferGeometry>
           <bufferAttribute args={[particles, 3]} attach="attributes-position" />
