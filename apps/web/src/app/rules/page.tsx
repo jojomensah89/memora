@@ -2,7 +2,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 
-export default async function ContextPage() {
+export default async function RulesPage() {
   const session = await authClient.getSession({
     fetchOptions: {
       headers: await headers(),
@@ -13,5 +13,5 @@ export default async function ContextPage() {
     redirect("/login");
   }
 
-  return <div>context</div>;
+  return <div>rules</div>;
 }

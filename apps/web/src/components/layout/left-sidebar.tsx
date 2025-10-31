@@ -86,22 +86,31 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ chats }) => {
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton className="cursor-pointer" tooltip="Rules">
-              <FileText className="mr-2 h-4 w-4" />
-              <span className="text-sm group-data-[state=collapsed]:hidden">
-                Rules
-              </span>
+            <SidebarMenuButton
+              asChild
+              className="cursor-pointer"
+              tooltip="Rules"
+            >
+              <Link href="/rules">
+                <FileText className="mr-2 h-4 w-4" />
+                <span className="text-sm group-data-[state=collapsed]:hidden">
+                  Rules
+                </span>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
+              asChild
               className="cursor-pointer"
               tooltip="Context Library"
             >
-              <BookUser className="mr-2 h-4 w-4" />
-              <span className="text-sm group-data-[state=collapsed]:hidden">
-                Context Library
-              </span>
+              <Link href="/context">
+                <BookUser className="mr-2 h-4 w-4" />
+                <span className="text-sm group-data-[state=collapsed]:hidden">
+                  Context Library
+                </span>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
