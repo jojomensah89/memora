@@ -7,15 +7,36 @@ import { Resend } from "resend";
 // Initialize Resend client for email sending
 const resend = new Resend(Bun.env.RESEND_API_KEY);
 
+const HTTP_STATUS = {
+  TOO_MANY_REQUESTS: 429,
+} as const;
+
 export const auth = betterAuth({
   baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3001",
   basePath: "/api/auth",
   database: prismaAdapter(prisma, {
     provider: "sqlite",
   }),
+  rateLimit: {
+    enabled: true,
+    window: 60,
+    max: 100,
+    storage: "database",
+    customRules: {
+      "/sign-in/email": { window: 60, max: 5 },
+      "/sign-up/email": { window: 60, max: 3 },
+      "/sign-in/magic-link": { window: 300, max: 10 },
+      "/reset-password": { window: 900, max: 3 },
+      "/change-password": { window: 60, max: 5 },
+    },
+  },
+
   trustedOrigins: [process.env.CORS_ORIGIN || ""],
 
   advanced: {
+    ipAddress: {
+      ipAddressHeaders: ["cf-connecting-ip", "x-forwarded-for", "x-real-ip"],
+    },
     defaultCookieAttributes: {
       sameSite: "none",
       secure: true,

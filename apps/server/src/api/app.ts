@@ -7,6 +7,7 @@ import { logger } from "hono/logger";
 import { auth } from "../lib/auth";
 import { createAuthMiddleware } from "./middleware/auth";
 import { errorHandler } from "./middleware/error";
+import { createRateLimiter } from "./middleware/rate-limiter";
 import { setupRoutes } from "./routes";
 
 // Create and configure the main Hono app
@@ -27,10 +28,14 @@ app.use(
   })
 );
 
-// 2. Apply error handling globally
+// 2. Apply rate limiting middleware (after CORS but before error handling)
+app.use("/api/*", createRateLimiter(60, 120)); // 120 requests per minute for general API
+app.use("/ai", createRateLimiter(60, 30)); // 30 requests per minute for AI endpoints
+
+// 3. Apply error handling globally
 app.onError(errorHandler);
 
-// 3. Health check endpoint (public, no auth required)
+// 4. Health check endpoint (public, no auth required)
 app.get("/api/health", (c) =>
   c.json({
     status: "ok",
@@ -38,13 +43,13 @@ app.get("/api/health", (c) =>
   })
 );
 
-/// 4. Auth routes (public, MUST be before protected API routes)
+/// 5. Auth routes (public, MUST be before protected API routes)
 app.all("/api/auth/*", async (c) => {
   const response = await auth.handler(c.req.raw);
   return response;
 });
 
-/// 5. AI streaming endpoint (protected)
+/// 6. AI streaming endpoint (protected)
 app.post("/ai", createAuthMiddleware(), async (c) => {
   const body = await c.req.json();
   const uiMessages = body.messages || [];
@@ -56,10 +61,10 @@ app.post("/ai", createAuthMiddleware(), async (c) => {
   return result.toUIMessageStreamResponse();
 });
 
-// 6. Setup all protected API routes (versioned)
+// 7. Setup all protected API routes (versioned)
 setupRoutes(app);
 
-// 7. Root endpoint with API information (last)
+// 8. Root endpoint with API information (last)
 app.get("/", (c) =>
   c.json({
     name: "Memora AI Server",
