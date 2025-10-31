@@ -60,7 +60,7 @@ export function Particles({
     m.uniforms.initialPositions.value =
       simulationMaterial.uniforms.positions.value;
     return m;
-  }, [simulationMaterial]);
+  }, [simulationMaterial, target.texture]);
 
   const [scene] = useState(() => new THREE.Scene());
   const [camera] = useState(
@@ -88,7 +88,9 @@ export function Particles({
   }, [size]);
 
   useFrame((state, delta) => {
-    if (!(dofPointsMaterial && simulationMaterial)) return;
+    if (!(dofPointsMaterial && simulationMaterial)) {
+      return;
+    }
 
     state.gl.setRenderTarget(target);
     state.gl.clear();
