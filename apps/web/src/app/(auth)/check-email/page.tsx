@@ -2,6 +2,7 @@
 
 import { Mail } from "lucide-react";
 import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import {
   Card,
   CardContent,
@@ -9,7 +10,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Suspense } from "react";
 
 function CheckEmailDisplay() {
   const searchParams = useSearchParams();

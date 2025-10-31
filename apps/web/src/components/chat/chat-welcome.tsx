@@ -15,6 +15,7 @@ import {
   PromptInputBody,
   PromptInputButton,
   PromptInputFooter,
+  type PromptInputMessage,
   PromptInputModelSelect,
   PromptInputModelSelectContent,
   PromptInputModelSelectItem,
@@ -24,7 +25,6 @@ import {
   PromptInputSubmit,
   PromptInputTextarea,
   PromptInputTools,
-  type PromptInputMessage,
 } from "@/components/ai-elements/prompt-input";
 import { Gl } from "@/components/gl";
 import { useUser } from "@/hooks/use-user";
@@ -37,6 +37,19 @@ const ChatWelcome = () => {
   const [useWebSearch, setUseWebSearch] = useState<boolean>(false);
   const router = useRouter();
   const { user, isPending } = useUser();
+
+  const createChatMutation = useMutation({
+    mutationFn: async (initialMessage: string) =>
+      apiClient.post<{ id: string }>("/api/chats", {
+        initialMessage,
+        modelId: model,
+        useWebSearch,
+        attachments: [],
+      }),
+    onSuccess: (data) => {
+      router.push(`/chat/${data.id}`);
+    },
+  });
 
   // Show loading state while checking authentication
   if (isPending) {
@@ -56,19 +69,6 @@ const ChatWelcome = () => {
       </div>
     );
   }
-
-  const createChatMutation = useMutation({
-    mutationFn: async (initialMessage: string) =>
-      apiClient.post<{ id: string }>("/api/chats", {
-        initialMessage,
-        modelId: model,
-        useWebSearch,
-        attachments: [],
-      }),
-    onSuccess: (data) => {
-      router.push(`/chat/${data.id}`);
-    },
-  });
 
   const handleSubmit = (message: PromptInputMessage) => {
     const text = message.text || "";
@@ -106,8 +106,8 @@ const ChatWelcome = () => {
                   {(attachment) => <PromptInputAttachment data={attachment} />}
                 </PromptInputAttachments>
                 <PromptInputTextarea
-                  value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
+                  value={prompt}
                 />
               </PromptInputBody>
               <PromptInputFooter>

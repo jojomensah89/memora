@@ -157,7 +157,7 @@ export function Particles({
             <bufferAttribute args={[uvs, 2]} attach="attributes-uv" />
           </bufferGeometry>
         </mesh>,
-    
+
         scene
       )}
       <points material={dofPointsMaterial} {...props}>
