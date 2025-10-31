@@ -9,8 +9,11 @@ import type {
 import type { TokenUsageRepository } from "./token-usage.repository";
 
 export class TokenUsageService extends BaseService {
-  constructor(private readonly repository: TokenUsageRepository) {
+  private readonly repository: TokenUsageRepository;
+
+  constructor(repository: TokenUsageRepository) {
     super();
+    this.repository = repository;
   }
 
   async create(input: {

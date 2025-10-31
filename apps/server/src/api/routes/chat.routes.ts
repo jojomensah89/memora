@@ -107,7 +107,7 @@ app.post("/:id/enhance", async (c) => {
   }
 
   try {
-    const { id } = getChatInputSchema.parse({ id: c.req.param("id") });
+    const { id: _id } = getChatInputSchema.parse({ id: c.req.param("id") });
     const body = await c.req.json();
     const input = enhancePromptInputSchema.parse(body);
     const result = await chatController.enhancePrompt(authUser.id, input);
@@ -128,7 +128,7 @@ app.post("/:id/fork", async (c) => {
   }
 
   try {
-    const { id } = getChatInputSchema.parse({ id: c.req.param("id") });
+    const { id: _id } = getChatInputSchema.parse({ id: c.req.param("id") });
     const body = await c.req.json();
     const input = forkChatInputSchema.parse(body);
     const forkedChat = await chatController.forkChat(authUser.id, input);

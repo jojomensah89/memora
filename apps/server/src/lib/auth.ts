@@ -4,21 +4,51 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { magicLink } from "better-auth/plugins";
 import { Resend } from "resend";
 
+// Validate required environment variables
+const requiredEnvVars = {
+  RESEND_API_KEY: process.env.RESEND_API_KEY,
+  BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
+  DATABASE_URL: process.env.DATABASE_URL,
+};
+
+for (const [key, value] of Object.entries(requiredEnvVars)) {
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${key}`);
+  }
+}
+
 // Initialize Resend client for email sending
-const resend = new Resend(Bun.env.RESEND_API_KEY);
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const auth = betterAuth({
-  baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3001",
+  baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
   basePath: "/api/auth",
   database: prismaAdapter(prisma, {
     provider: "sqlite",
   }),
-  trustedOrigins: [process.env.CORS_ORIGIN || ""],
+  rateLimit: {
+    enabled: true,
+    window: 60,
+    max: 100,
+    storage: "database",
+    customRules: {
+      "/sign-in/email": { window: 60, max: 5 },
+      "/sign-up/email": { window: 60, max: 3 },
+      "/sign-in/magic-link": { window: 300, max: 10 },
+      "/reset-password": { window: 900, max: 3 },
+      "/change-password": { window: 60, max: 5 },
+    },
+  },
+
+  trustedOrigins: [process.env.CORS_ORIGIN || "http://localhost:3001"],
 
   advanced: {
+    ipAddress: {
+      ipAddressHeaders: ["cf-connecting-ip", "x-forwarded-for", "x-real-ip"],
+    },
     defaultCookieAttributes: {
-      sameSite: "none",
-      secure: true,
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      secure: process.env.NODE_ENV === "production",
       httpOnly: true,
     },
   },

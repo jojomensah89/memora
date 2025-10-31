@@ -1,8 +1,19 @@
-import type { User } from "better-auth";
+"use client";
+
 import { authClient } from "@/lib/auth-client";
 
 export function useUser() {
-  const session = authClient.useSession();
-  const user: User | undefined = session?.data?.user;
-  return user;
+  // Destructure useSession from authClient first
+  const { useSession } = authClient;
+
+  // Then call it as a hook
+  const { data: session, isPending, error } = useSession();
+
+  const user = session?.user;
+
+  return {
+    user,
+    isPending,
+    error,
+  };
 }

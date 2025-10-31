@@ -8,7 +8,11 @@ import type {
 import type { TokenUsageService } from "./token-usage.service";
 
 export class TokenUsageController {
-  constructor(private readonly service: TokenUsageService) {}
+  private readonly service: TokenUsageService;
+
+  constructor(service: TokenUsageService) {
+    this.service = service;
+  }
 
   async trackUsage(userId: string, input: CreateTokenUsageInput) {
     try {

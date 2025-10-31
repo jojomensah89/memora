@@ -13,3 +13,13 @@ datasource db {
   provider = "sqlite"  // Change to "postgresql" for production
   url      = env("DATABASE_URL")
 }
+
+// Rate limit table for Better Auth and API rate limiting
+model RateLimit {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  count       Int
+  lastRequest BigInt
+
+  @@map("rateLimit")
+}

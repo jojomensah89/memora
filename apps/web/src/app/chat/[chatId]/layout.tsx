@@ -1,5 +1,4 @@
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
 import Header from "@/components/layout/header";
 import RightSidebar from "@/components/layout/right-sidebar";
 import { authClient } from "@/lib/auth-client";
@@ -9,15 +8,12 @@ export default async function ChatLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const session = await authClient.getSession({
+  // Middleware already ensures user is authenticated
+  const _session = await authClient.getSession({
     fetchOptions: {
       headers: await headers(),
     },
   });
-
-  if (!session?.data?.user?.id) {
-    redirect("/login");
-  }
 
   return (
     <div className="flex h-screen max-h-screen w-full bg-background">

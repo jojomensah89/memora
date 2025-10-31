@@ -1,3 +1,3 @@
-import app from "./api/app";
+import "dotenv/config"; // Load environment variables FIRST, before any other imports
 
-export default app;
+export { default } from "./api/app";

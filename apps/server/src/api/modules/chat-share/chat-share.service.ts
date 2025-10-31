@@ -9,11 +9,12 @@ import type { ChatShareRepository } from "./chat-share.repository";
 import type { CreateShareResult, SharedChatContent } from "./chat-share.types";
 
 export class ChatShareService extends BaseService {
-  constructor(
-    private readonly repository: ChatShareRepository,
-    private readonly baseUrl = "https://memora.ai/shared"
-  ) {
+  private readonly repository: ChatShareRepository;
+  private readonly baseUrl = "https://memora.ai/shared";
+
+  constructor(repository: ChatShareRepository) {
     super();
+    this.repository = repository;
   }
 
   async createShare(

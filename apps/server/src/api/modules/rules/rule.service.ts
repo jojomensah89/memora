@@ -10,8 +10,11 @@ import type { RuleListResult, RuleWithTags } from "./rule.types";
  * Contains business logic for rules management
  */
 export class RuleService extends BaseService {
-  constructor(private readonly repository: RuleRepository) {
+  private readonly repository: RuleRepository;
+
+  constructor(repository: RuleRepository) {
     super();
+    this.repository = repository;
   }
 
   /**

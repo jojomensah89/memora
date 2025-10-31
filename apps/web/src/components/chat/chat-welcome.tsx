@@ -15,6 +15,7 @@ import {
   PromptInputBody,
   PromptInputButton,
   PromptInputFooter,
+  type PromptInputMessage,
   PromptInputModelSelect,
   PromptInputModelSelectContent,
   PromptInputModelSelectItem,
@@ -35,7 +36,7 @@ const ChatWelcome = () => {
   const [model, setModel] = useState<string>(models[0].id);
   const [useWebSearch, setUseWebSearch] = useState<boolean>(false);
   const router = useRouter();
-  const user = useUser();
+  const { user, isPending } = useUser();
 
   const createChatMutation = useMutation({
     mutationFn: async (initialMessage: string) =>
@@ -50,9 +51,29 @@ const ChatWelcome = () => {
     },
   });
 
-  const handleSubmit = (value: string) => {
-    if (value.trim()) {
-      createChatMutation.mutate(value);
+  // Show loading state while checking authentication
+  if (isPending) {
+    return (
+      <div className="relative min-h-screen bg-background">
+        <div className="fixed inset-0 z-0">
+          <Gl hovering={false} />
+        </div>
+        <main className="relative z-10 flex min-h-screen flex-col">
+          <div className="flex flex-1 items-center justify-center">
+            <div className="text-center">
+              <div className="mb-4 h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+              <p className="text-muted-foreground">Loading...</p>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  const handleSubmit = (message: PromptInputMessage) => {
+    const text = message.text || "";
+    if (text.trim()) {
+      createChatMutation.mutate(text);
     }
   };
 
@@ -79,13 +100,15 @@ const ChatWelcome = () => {
               globalDrop
               multiple
               onSubmit={handleSubmit}
-              onValueChange={(value) => setPrompt(value)}
             >
               <PromptInputBody>
                 <PromptInputAttachments>
                   {(attachment) => <PromptInputAttachment data={attachment} />}
                 </PromptInputAttachments>
-                <PromptInputTextarea />
+                <PromptInputTextarea
+                  onChange={(e) => setPrompt(e.target.value)}
+                  value={prompt}
+                />
               </PromptInputBody>
               <PromptInputFooter>
                 <PromptInputTools>

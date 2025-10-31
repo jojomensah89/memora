@@ -9,7 +9,11 @@ import type {
 import type { MessageService } from "./message.service";
 
 export class MessageController {
-  constructor(private readonly service: MessageService) {}
+  private readonly service: MessageService;
+
+  constructor(service: MessageService) {
+    this.service = service;
+  }
 
   async createMessage(userId: string, input: CreateMessageInput) {
     try {

@@ -161,11 +161,11 @@ export class ContextItemRepository extends BaseRepository<ContextItemWithTags> {
       let totalTokens = 0;
       let totalSize = 0;
 
-      items.forEach((item) => {
+      for (const item of items) {
         byType[item.type] = (byType[item.type] || 0) + 1;
         totalTokens += item.tokens || 0;
         totalSize += item.size || 0;
-      });
+      }
 
       return {
         total: items.length,

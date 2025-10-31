@@ -16,7 +16,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { useUser } from "@/hooks/use-user";
-import { useUIStore } from "@/stores/useUIStore";
+import { useUIStore } from "@/stores/use-ui-store";
 import { NavUser } from "../nav-user";
 
 type Chat = {
@@ -36,7 +36,7 @@ type LeftSidebarProps = {
 const LeftSidebar: React.FC<LeftSidebarProps> = ({ chats }) => {
   const { setActiveChatId, activeChatId } = useUIStore();
   const router = useRouter();
-  const user = useUser();
+  const { user, isPending } = useUser();
 
   const handleNewChat = () => {
     // Navigate to new chat
@@ -86,22 +86,31 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ chats }) => {
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton className="cursor-pointer" tooltip="Rules">
-              <FileText className="mr-2 h-4 w-4" />
-              <span className="text-sm group-data-[state=collapsed]:hidden">
-                Rules
-              </span>
+            <SidebarMenuButton
+              asChild
+              className="cursor-pointer"
+              tooltip="Rules"
+            >
+              <Link href="/rules">
+                <FileText className="mr-2 h-4 w-4" />
+                <span className="text-sm group-data-[state=collapsed]:hidden">
+                  Rules
+                </span>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
+              asChild
               className="cursor-pointer"
               tooltip="Context Library"
             >
-              <BookUser className="mr-2 h-4 w-4" />
-              <span className="text-sm group-data-[state=collapsed]:hidden">
-                Context Library
-              </span>
+              <Link href="/context">
+                <BookUser className="mr-2 h-4 w-4" />
+                <span className="text-sm group-data-[state=collapsed]:hidden">
+                  Context Library
+                </span>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
@@ -129,7 +138,16 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ chats }) => {
           </SidebarMenu>
         </div>
       </SidebarContent>
-      <SidebarFooter>{user && <NavUser user={user} />}</SidebarFooter>
+      <SidebarFooter>
+        {isPending ? (
+          <div className="flex items-center gap-2 p-2">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            <div className="text-muted-foreground text-sm">Loading...</div>
+          </div>
+        ) : (
+          user && <NavUser user={user} />
+        )}
+      </SidebarFooter>
     </Sidebar>
   );
 };

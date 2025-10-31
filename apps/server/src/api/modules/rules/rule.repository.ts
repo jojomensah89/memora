@@ -137,7 +137,7 @@ export class RuleRepository extends BaseRepository<RuleWithTags> {
     data: Partial<CreateRuleInput>
   ): Promise<RuleWithTags> {
     try {
-      const { tags, ...updateData } = data;
+      const { tags: _tags, ...updateData } = data;
 
       return await this.prisma.rule.update({
         where: { id, userId },

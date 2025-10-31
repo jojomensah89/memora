@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import { Button } from "@/components/ui/button";
 
 const errorMessages = {
@@ -17,7 +18,7 @@ const errorMessages = {
   default: "An error occurred during authentication. Please try again.",
 };
 
-export default function ErrorPage() {
+function ErrorDisplay() {
   const searchParams = useSearchParams();
   const error = searchParams.get("error");
 
@@ -57,5 +58,13 @@ export default function ErrorPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function ErrorPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ErrorDisplay />
+    </Suspense>
   );
 }

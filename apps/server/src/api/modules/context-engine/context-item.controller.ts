@@ -13,7 +13,11 @@ import type { ContextItemService } from "./context-item.service";
  * All errors are caught and handled here
  */
 export class ContextItemController {
-  constructor(private readonly service: ContextItemService) {}
+  private readonly service: ContextItemService;
+
+  constructor(service: ContextItemService) {
+    this.service = service;
+  }
 
   /**
    * Get all context items for current user
