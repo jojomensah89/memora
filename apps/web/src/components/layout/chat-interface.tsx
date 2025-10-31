@@ -36,11 +36,6 @@ import { models } from "@/lib/utils";
 
 type ChatInterfaceProps = {
   chatId: string;
-  user?: {
-    name?: string | null;
-    email?: string | null;
-    image?: string | null;
-  };
 };
 
 const ChatInterface: React.FC<ChatInterfaceProps> = ({ chatId }) => {
