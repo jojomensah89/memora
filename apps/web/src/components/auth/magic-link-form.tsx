@@ -62,7 +62,7 @@ export default function MagicLinkForm({
         {
           email: value.email,
           name: showNameField ? value.name : undefined,
-          callbackURL: "http://localhost:3001/dashboard",
+          callbackURL: "http://localhost:3001/chat",
           // newUserCallbackURL: "/dashboard",
           // errorCallbackURL: "/login",
         },
@@ -121,7 +121,7 @@ export default function MagicLinkForm({
                       await authClient.signIn.social(
                         {
                           provider: "github",
-                          callbackURL: "http://localhost:3001/dashboard",
+                          callbackURL: "http://localhost:3001/chat",
                         },
                         {
                           onError: (error) => {
