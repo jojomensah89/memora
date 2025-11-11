@@ -1,49 +1,49 @@
-import type { Context, Next } from "hono";
+import type { Next } from "hono";
 import { auth } from "../../lib/auth";
+import type { AppContext } from "../types/hono.types";
 
-export function authMiddleware(c: Context, next: Next) {
-  return async () => {
-    try {
-      // Get session using Better Auth
-      const session = await auth.api.getSession({
-        headers: c.req.raw.headers,
-      });
+export async function authMiddleware(c: AppContext, next: Next): Promise<void> {
+  try {
+    const session = await auth.api.getSession({
+      headers: c.req.raw.headers,
+    });
 
-      if (!session) {
-        return c.json({ error: "Authentication required" }, 401);
-      }
-
-      // Set user data in context
-      c.set("session", session);
-      c.set("authUser", session?.user);
-
-      await next();
-    } catch (error) {
-      return c.json({ error: "Authentication failed", details: error }, 401);
+    if (!session) {
+      c.status(401);
+      c.json({ error: "Authentication required" });
+      return;
     }
-  };
+
+    c.set("session", session);
+    c.set("authUser", session.user);
+
+    await next();
+  } catch (error) {
+    c.status(401);
+    c.json({
+      error: "Authentication failed",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
 }
 
-// Simple wrapper that returns proper Hono middleware
-export function createAuthMiddleware() {
-  return async (c: Context, next: Next) => {
-    try {
-      // Get session using Better Auth
-      const session = await auth.api.getSession({
-        headers: c.req.raw.headers,
-      });
+export async function optionalAuth(c: AppContext, next: Next): Promise<void> {
+  try {
+    const session = await auth.api.getSession({
+      headers: c.req.raw.headers,
+    });
 
-      if (!session) {
-        return c.json({ error: "Authentication required" }, 401);
-      }
-
-      // Set user data in context
+    if (session) {
       c.set("session", session);
-      c.set("authUser", session?.user);
-
-      await next();
-    } catch (error) {
-      return c.json({ error: "Authentication failed", details: error }, 401);
+      c.set("authUser", session.user);
     }
-  };
+
+    await next();
+  } catch (_error) {
+    await next();
+  }
+}
+
+export function createAuthMiddleware() {
+  return authMiddleware;
 }

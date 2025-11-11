@@ -9,8 +9,10 @@ import {
 } from "../modules/chat/chat.inputs";
 import { ChatRepository } from "../modules/chat/chat.repository";
 import { ChatService } from "../modules/chat/chat.service";
+import type { AuthVariables } from "../types/auth.types";
+import type { AppContext } from "../types/hono.types";
 
-const app = new Hono();
+const app = new Hono<{ Variables: AuthVariables }>();
 
 // Initialize chat controller
 const chatRepository = new ChatRepository();
@@ -25,23 +27,13 @@ const chatService = new ChatService(chatRepository, {
 });
 const chatController = new ChatController(chatService);
 
-// GET /api/chats/models - Get available models
-app.get("/models", async (c) => {
-  const authUser = c.get("authUser");
-  if (!authUser) {
-    return c.json({ error: "Unauthorized" }, 401);
-  }
-  const models = await chatController.getModels();
+app.get("/models", async (c: AppContext) => {
+  const models = chatController.getModels();
   return c.json(models);
 });
 
-// POST /api/chats - Create new chat
-app.post("/", async (c) => {
+app.post("/", async (c: AppContext) => {
   const authUser = c.get("authUser");
-  if (!authUser) {
-    return c.json({ error: "Unauthorized" }, 401);
-  }
-
   try {
     const body = await c.req.json();
     const input = createChatInputSchema.parse(body);
@@ -55,12 +47,8 @@ app.post("/", async (c) => {
   }
 });
 
-// GET /api/chats - List all chats for user
-app.get("/", async (c) => {
+app.get("/", async (c: AppContext) => {
   const authUser = c.get("authUser");
-  if (!authUser) {
-    return c.json({ error: "Unauthorized" }, 401);
-  }
 
   try {
     const query = c.req.query();
@@ -79,12 +67,8 @@ app.get("/", async (c) => {
   }
 });
 
-// GET /api/chats/:id - Get specific chat
-app.get("/:id", async (c) => {
+app.get("/:id", async (c: AppContext) => {
   const authUser = c.get("authUser");
-  if (!authUser) {
-    return c.json({ error: "Unauthorized" }, 401);
-  }
 
   try {
     const { id } = getChatInputSchema.parse({ id: c.req.param("id") });
@@ -103,12 +87,8 @@ app.get("/:id", async (c) => {
   }
 });
 
-// POST /api/chats/:id/enhance - Enhance prompt
-app.post("/:id/enhance", async (c) => {
+app.post("/:id/enhance", async (c: AppContext) => {
   const authUser = c.get("authUser");
-  if (!authUser) {
-    return c.json({ error: "Unauthorized" }, 401);
-  }
 
   try {
     const { id: _id } = getChatInputSchema.parse({ id: c.req.param("id") });
@@ -124,12 +104,8 @@ app.post("/:id/enhance", async (c) => {
   }
 });
 
-// POST /api/chats/:id/fork - Fork chat
-app.post("/:id/fork", async (c) => {
+app.post("/:id/fork", async (c: AppContext) => {
   const authUser = c.get("authUser");
-  if (!authUser) {
-    return c.json({ error: "Unauthorized" }, 401);
-  }
 
   try {
     const { id: _id } = getChatInputSchema.parse({ id: c.req.param("id") });
@@ -145,12 +121,8 @@ app.post("/:id/fork", async (c) => {
   }
 });
 
-// POST /api/chats/:id/messages - Generate AI response
-app.post("/:id/messages", async (c) => {
+app.post("/:id/messages", async (c: AppContext) => {
   const authUser = c.get("authUser");
-  if (!authUser) {
-    return c.json({ error: "Unauthorized" }, 401);
-  }
 
   try {
     const { id } = getChatInputSchema.parse({ id: c.req.param("id") });

@@ -6,7 +6,7 @@
 import { streamText } from "ai";
 import { Hono } from "hono";
 import { z } from "zod";
-import { AuthenticationError, ChatNotFoundError } from "../common/errors";
+import { ChatNotFoundError } from "../common/errors";
 import {
   getModelInstance,
   getProviderFromModel,
@@ -26,8 +26,10 @@ import { RuleRepository } from "../modules/rules/rule.repository";
 import { RuleService } from "../modules/rules/rule.service";
 import { TokenUsageRepository } from "../modules/token-usage/token-usage.repository";
 import { TokenUsageService } from "../modules/token-usage/token-usage.service";
+import type { AuthVariables } from "../types/auth.types";
+import type { AppContext } from "../types/hono.types";
 
-const app = new Hono();
+const app = new Hono<{ Variables: AuthVariables }>();
 
 // Initialize services
 const chatRepository = new ChatRepository();
@@ -65,15 +67,8 @@ const streamRequestSchema = z.object({
     .optional(),
 });
 
-/**
- * POST /api/chat
- * Streaming endpoint compatible with Vercel AI SDK's useChat hook
- */
-app.post("/", async (c: any) => {
+app.post("/", async (c: AppContext) => {
   const authUser = c.get("authUser");
-  if (!authUser) {
-    throw new AuthenticationError("Login required");
-  }
 
   const body = await c.req.json();
   const { id: chatId, messages, data } = streamRequestSchema.parse(body);
@@ -177,16 +172,7 @@ app.post("/", async (c: any) => {
   return result.toTextStreamResponse();
 });
 
-/**
- * GET /api/chat/models
- * List available AI models
- */
-app.get("/models", async (c: any) => {
-  const authUser = c.get("authUser");
-  if (!authUser) {
-    throw new AuthenticationError("Login required");
-  }
-
+app.get("/models", async (c: AppContext) => {
   const { getAllAvailableModels } = await import("../lib/ai/provider-factory");
   const models = getAllAvailableModels();
 
@@ -196,11 +182,7 @@ app.get("/models", async (c: any) => {
   });
 });
 
-/**
- * GET /api/chat/health
- * Check streaming endpoint health
- */
-app.get("/health", async (c: any) => {
+app.get("/health", async (c: AppContext) => {
   const { checkAPIKeys } = await import("../lib/ai/provider-factory");
   const keys = checkAPIKeys();
 

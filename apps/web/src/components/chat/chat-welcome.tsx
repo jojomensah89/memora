@@ -29,7 +29,7 @@ import {
 import { Gl } from "@/components/gl";
 import { useUser } from "@/hooks/use-user";
 import { models } from "@/lib/utils";
-import { apiClient } from "@/utils/api-client";
+import { apiClient, queryClient } from "@/utils/api-client";
 
 const ChatWelcome = () => {
   const [prompt, setPrompt] = useState("");
@@ -48,6 +48,7 @@ const ChatWelcome = () => {
       }),
     onSuccess: (data) => {
       router.push(`/chat/${data.chatId}`);
+      queryClient.invalidateQueries({ queryKey: ["chats"] });
     },
   });
 

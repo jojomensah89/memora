@@ -1,5 +1,7 @@
 import { Hono } from "hono";
-import { createAuthMiddleware } from "../middleware/auth";
+import { authMiddleware } from "../middleware/auth";
+import type { AuthVariables } from "../types/auth.types";
+import type { AppContext } from "../types/hono.types";
 import chatRoutes from "./chat.routes";
 import chatShareRoutes from "./chat-share.routes";
 import contextRoutes from "./context.routes";
@@ -8,25 +10,19 @@ import rulesRoutes from "./rules.routes";
 import streamingRoutes from "./streaming.routes";
 import tokenUsageRoutes from "./token-usage.routes";
 
-export function setupRoutes(app: Hono) {
-  // Group for protected routes
-  const protectedRoutes = new Hono();
-  protectedRoutes.use("*", createAuthMiddleware());
+export function setupRoutes(app: Hono<{ Variables: AuthVariables }>) {
+  const protectedRoutes = new Hono<{ Variables: AuthVariables }>();
+  protectedRoutes.use("*", authMiddleware);
 
-  // Private data endpoint for testing auth
-  protectedRoutes.get("/private-data", (c) => {
+  protectedRoutes.get("/private-data", (c: AppContext) => {
     const authUser = c.get("authUser");
-    if (!authUser) {
-      return c.json({ error: "Unauthorized" }, 401);
-    }
     return c.json({
       message: "This is private data",
       user: authUser,
     });
   });
 
-  // Mount feature routes
-  protectedRoutes.route("/chat", streamingRoutes); // MUST be before /api/chats for proper routing
+  protectedRoutes.route("/chat", streamingRoutes);
   protectedRoutes.route("/chats", chatRoutes);
   protectedRoutes.route("/rules", rulesRoutes);
   protectedRoutes.route("/context-engine", contextRoutes);
@@ -34,7 +30,6 @@ export function setupRoutes(app: Hono) {
   protectedRoutes.route("/token-usage", tokenUsageRoutes);
   protectedRoutes.route("/chat-share", chatShareRoutes);
 
-  // Mount the protected routes group under /api/v1
   app.route("/api/v1", protectedRoutes);
 
   return app;
