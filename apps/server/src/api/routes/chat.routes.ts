@@ -65,8 +65,12 @@ app.get("/", async (c) => {
   try {
     const query = c.req.query();
     const input = listChatsInputSchema.parse(query);
-    const chats = await chatController.listChats(authUser.id, input);
-    return c.json(chats);
+    const result = await chatController.listChats(authUser.id, input);
+    return c.json({
+      data: result.chats,
+      cursor: result.nextCursor ?? null,
+      hasMore: Boolean(result.nextCursor),
+    });
   } catch (error) {
     if (error instanceof Error) {
       return c.json({ error: error.message }, 400);

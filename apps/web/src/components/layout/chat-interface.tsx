@@ -1,5 +1,6 @@
 "use client";
 import { useChat } from "@ai-sdk/react";
+import { DefaultChatTransport } from "ai";
 
 import { GlobeIcon } from "lucide-react";
 import { useRef, useState } from "react";
@@ -44,7 +45,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ chatId }) => {
   const [useWebSearch, setUseWebSearch] = useState<boolean>(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const { messages, status, sendMessage } = useChat({ id: chatId });
+  const { messages, status, sendMessage } = useChat({
+    id: chatId,
+    transport: new DefaultChatTransport({
+      api: `${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/chat`,
+      credentials: "include",
+    }),
+  });
 
   const handleSubmit = (message: PromptInputMessage) => {
     const hasText = Boolean(message.text);

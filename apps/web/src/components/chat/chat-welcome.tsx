@@ -40,14 +40,14 @@ const ChatWelcome = () => {
 
   const createChatMutation = useMutation({
     mutationFn: async (initialMessage: string) =>
-      apiClient.post<{ id: string }>("/api/chats", {
+      apiClient.post<{ chatId: string }>("/api/chats", {
         initialMessage,
         modelId: model,
         useWebSearch,
         attachments: [],
       }),
     onSuccess: (data) => {
-      router.push(`/chat/${data.id}`);
+      router.push(`/chat/${data.chatId}`);
     },
   });
 

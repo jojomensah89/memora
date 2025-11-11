@@ -23,8 +23,8 @@ export const forkChatInputSchema = z.object({
 });
 
 export const listChatsInputSchema = z.object({
-  includeArchived: z.boolean().optional().default(false),
-  limit: z
+  includeArchived: z.coerce.boolean().optional().default(false),
+  limit: z.coerce
     .number()
     .int()
     .min(PAGINATION_LIMITS.MIN_LIMIT)
