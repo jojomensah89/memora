@@ -60,7 +60,6 @@ app.post("/", async (c: AppContext) => {
     return c.json({ error: "Internal server error" }, 500);
   }
 });
-)
 
 // POST /api/context-engine/upload - Upload file context
 app.post("/upload", async (c: AppContext) =>
@@ -94,7 +93,6 @@ app.post("/upload", async (c: AppContext) =>
     return c.json({ error: "Internal server error" }, 500);
   }
 }
-)
 )
 
 // DELETE /api/context-engine/:id - Delete context item
