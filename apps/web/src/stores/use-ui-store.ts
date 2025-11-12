@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
 
 type UIState = {
   leftSidebarOpen: boolean;
@@ -20,25 +21,33 @@ type UIActions = {
   toggleRightSidebar: () => void;
 };
 
-export const useUIStore = create<UIState & UIActions>((set) => ({
-  // Initial state
-  leftSidebarOpen: true,
-  rightSidebarOpen: true,
-  activeChatId: null,
-  selectedContext: [],
-  sidebarWidths: { left: 160, right: 280 },
-  isMobile: false,
+export const useUIStore = create(
+  persist<UIState & UIActions>(
+    (set) => ({
+      // Initial state
+      leftSidebarOpen: true,
+      rightSidebarOpen: true,
+      activeChatId: null,
+      selectedContext: [],
+      sidebarWidths: { left: 160, right: 280 },
+      isMobile: false,
 
-  // Actions
-  setLeftSidebarOpen: (open) => set({ leftSidebarOpen: open }),
-  setRightSidebarOpen: (open) => set({ rightSidebarOpen: open }),
-  setActiveChatId: (chatId) => set({ activeChatId: chatId }),
-  setSelectedContext: (context) => set({ selectedContext: context }),
-  setSidebarWidths: (widths) => set({ sidebarWidths: widths }),
-  setIsMobile: (isMobile) => set({ isMobile }),
+      // Actions
+      setLeftSidebarOpen: (open) => set({ leftSidebarOpen: open }),
+      setRightSidebarOpen: (open) => set({ rightSidebarOpen: open }),
+      setActiveChatId: (chatId) => set({ activeChatId: chatId }),
+      setSelectedContext: (context) => set({ selectedContext: context }),
+      setSidebarWidths: (widths) => set({ sidebarWidths: widths }),
+      setIsMobile: (isMobile) => set({ isMobile }),
 
-  toggleLeftSidebar: () =>
-    set((state) => ({ leftSidebarOpen: !state.leftSidebarOpen })),
-  toggleRightSidebar: () =>
-    set((state) => ({ rightSidebarOpen: !state.rightSidebarOpen })),
-}));
+      toggleLeftSidebar: () =>
+        set((state) => ({ leftSidebarOpen: !state.leftSidebarOpen })),
+      toggleRightSidebar: () =>
+        set((state) => ({ rightSidebarOpen: !state.rightSidebarOpen })),
+    }),
+    {
+      name: "memora-ui-store",
+      storage: createJSONStorage(() => localStorage),
+    },
+  ),
+);
