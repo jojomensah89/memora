@@ -7,7 +7,7 @@ import type { RuleStats, RuleWithTags } from "./rule.types";
  * Rule Repository
  * Handles all database operations for rules
  */
-export class RuleRepository extends BaseRepository<RuleWithTags> {
+export class RuleRepository extends BaseRepository {
   /**
    * Get all rules for a user
    */

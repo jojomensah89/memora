@@ -48,6 +48,6 @@ export const useUIStore = create(
     {
       name: "memora-ui-store",
       storage: createJSONStorage(() => localStorage),
-    },
-  ),
+    }
+  )
 );

@@ -22,7 +22,6 @@ app.get("/by-chat/:chatId", async (c: AppContext) => {
 
 // GET /api/messages/:id - Get specific message
 app.get("/:id", async (c: AppContext) => {
-  const _authUser = c.get("authUser");
   const { id } = c.req.param();
 
   // TODO: Implement actual message retrieval logic
@@ -33,7 +32,6 @@ app.get("/:id", async (c: AppContext) => {
 
 // POST /api/messages - Create message
 app.post("/", async (c: AppContext) => {
-  const _authUser = c.get("authUser");
   const body = await c.req.json();
 
   const createMessageSchema = z.object({

@@ -62,8 +62,7 @@ app.post("/", async (c: AppContext) => {
 });
 
 // POST /api/context-engine/upload - Upload file context
-app.post("/upload", async (c: AppContext) =>
-{
+app.post("/upload", async (c: AppContext) => {
   const body = await c.req.json();
 
   const uploadFileSchema = z.object({
@@ -92,18 +91,15 @@ app.post("/upload", async (c: AppContext) =>
     }
     return c.json({ error: "Internal server error" }, 500);
   }
-}
-)
+});
 
 // DELETE /api/context-engine/:id - Delete context item
-app.delete("/:id", async (c: AppContext) =>
-{
+app.delete("/:id", async (c: AppContext) => {
   const _authUser = c.get("authUser");
   const { id: _id } = c.req.param();
 
   // TODO: Implement actual context item deletion logic
   return c.text("", 204);
-}
-)
+});
 
 export default app;

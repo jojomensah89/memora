@@ -1,6 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/utils/api-client";
 
+type Message = {
+  id: string;
+  content: string;
+  role: "user" | "assistant" | "system";
+  createdAt: string;
+  updatedAt: string;
+  metadata?: any;
+  attachments?: any[];
+};
+
 type Chat = {
   id: string;
   title: string;
@@ -10,6 +20,7 @@ type Chat = {
   provider: string;
   isPinned: boolean;
   isArchived: boolean;
+  messages: Message[];
 };
 
 export function useChat(chatId: string | undefined) {

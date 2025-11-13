@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { GlobeIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -28,25 +28,115 @@ import {
 } from "@/components/ai-elements/prompt-input";
 import { Gl } from "@/components/gl";
 import { useUser } from "@/hooks/use-user";
-import { models } from "@/lib/utils";
+import { fetchModels, type Model } from "@/lib/utils";
 import { apiClient, queryClient } from "@/utils/api-client";
+
+type CreateChatResponse = {
+  id: string;
+  chatId: string;
+  messageId: string;
+  provider: string;
+  modelId: string;
+  useWebSearch: boolean;
+};
+
+type StartInitialStreamInput = {
+  chatId: string;
+  messageId: string;
+  text: string;
+  modelId: string;
+  useWebSearch: boolean;
+};
+
+async function startInitialStream(input: StartInitialStreamInput) {
+  try {
+    const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
+    const endpoint = serverUrl ? `${serverUrl}/api/v1/chat` : "/api/v1/chat";
+
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        id: input.chatId,
+        messages: [
+          {
+            id: input.messageId,
+            role: "user",
+            parts: [
+              {
+                type: "text",
+                text: input.text,
+              },
+            ],
+            createdAt: new Date().toISOString(),
+          },
+        ],
+        model: input.modelId,
+        webSearch: input.useWebSearch,
+      }),
+    });
+
+    if (!(response.ok && response.body)) {
+      return;
+    }
+
+    const reader = response.body.getReader();
+
+    try {
+      while (true) {
+        const { done } = await reader.read();
+        if (done) {
+          break;
+        }
+      }
+    } finally {
+      reader.releaseLock();
+    }
+  } catch (_) {
+    // Swallow errors to avoid blocking navigation
+  }
+}
 
 const ChatWelcome = () => {
   const [prompt, setPrompt] = useState("");
-  const [model, setModel] = useState<string>(models[0].id);
   const [useWebSearch, setUseWebSearch] = useState<boolean>(false);
   const router = useRouter();
   const { user, isPending } = useUser();
 
-  const createChatMutation = useMutation({
+  // Fetch models from backend
+  const { data: modelsData } = useQuery({
+    queryKey: ["models"],
+    queryFn: fetchModels,
+    staleTime: Number.POSITIVE_INFINITY, // Models don't change often
+  });
+
+  const models = modelsData || [];
+  const [model, setModel] = useState<string>(() => {
+    // Default to first Gemini model or the first available model
+    const firstGemini = models.find((m: Model) => m.provider === "GEMINI");
+    return firstGemini?.modelId || models[0]?.modelId || "gemini-2.0-flash-exp";
+  });
+
+  const createChatMutation = useMutation<CreateChatResponse, Error, string>({
     mutationFn: async (initialMessage: string) =>
-      apiClient.post<{ chatId: string }>("/api/chats", {
+      apiClient.post<CreateChatResponse>("/api/chats", {
         initialMessage,
         modelId: model,
         useWebSearch,
         attachments: [],
       }),
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
+      startInitialStream({
+        chatId: data.chatId,
+        messageId: data.messageId,
+        text: variables,
+        modelId: data.modelId,
+        useWebSearch: data.useWebSearch,
+      }).finally(() => {
+        queryClient.invalidateQueries({ queryKey: ["chat", data.chatId] });
+      });
+
       router.push(`/chat/${data.chatId}`);
       queryClient.invalidateQueries({ queryKey: ["chats"] });
     },
@@ -75,6 +165,7 @@ const ChatWelcome = () => {
     const text = message.text || "";
     if (text.trim()) {
       createChatMutation.mutate(text);
+      setPrompt("");
     }
   };
 
@@ -139,8 +230,8 @@ const ChatWelcome = () => {
                     <PromptInputModelSelectContent>
                       {models.map((modelItem) => (
                         <PromptInputModelSelectItem
-                          key={modelItem.id}
-                          value={modelItem.id}
+                          key={modelItem.modelId}
+                          value={modelItem.modelId}
                         >
                           {modelItem.name}
                         </PromptInputModelSelectItem>
