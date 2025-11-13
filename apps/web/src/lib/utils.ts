@@ -13,7 +13,7 @@ export type Model = {
 
 export async function fetchModels(): Promise<Model[]> {
   const response = await fetch(
-    `${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/streaming/models`,
+    `${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/chat/models`,
     {
       credentials: "include",
     }

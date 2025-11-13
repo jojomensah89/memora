@@ -154,7 +154,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     }
   }, [defaultModel, model, models]);
 
-  const { messages, status, sendMessage } = useAIChat({
+  const { messages, status, sendMessage, error } = useAIChat({
     id: chatId,
     initialMessages,
     transport: new DefaultChatTransport({
@@ -162,6 +162,34 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       credentials: "include",
     }),
   });
+
+  // Auto-trigger streaming if last message is from user (first navigation)
+  useEffect(() => {
+    const lastMessage = initialMessages.at(-1);
+
+    // If we just navigated here and last message is user, trigger AI response
+    if (
+      lastMessage?.role === "user" &&
+      messages.length === initialMessages.length &&
+      initialMessages.length > 0
+    ) {
+      const userText =
+        lastMessage.parts.find((part) => part.type === "text")?.text || "";
+
+      // Trigger the AI response automatically
+      sendMessage(
+        {
+          text: userText,
+        },
+        {
+          body: {
+            model: defaultModel,
+            webSearch: false,
+          },
+        }
+      );
+    }
+  }, [initialMessages, messages.length, defaultModel, sendMessage]); // Only trigger on initial mount
 
   const handleSubmit = (message: PromptInputMessage) => {
     const hasText = Boolean(message.text);
@@ -210,6 +238,30 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                   </MessageContent>
                 </Message>
               ))}
+
+              {/* Show error message if streaming fails */}
+              {error && (
+                <Message from="assistant">
+                  <MessageContent>
+                    <div className="rounded-md border border-destructive/20 p-2 text-destructive">
+                      <div className="mb-1 flex items-center gap-2">
+                        <span className="text-lg">⚠️</span>
+                        <span className="font-medium">Error</span>
+                      </div>
+                      <div className="text-sm opacity-90">
+                        {error.message ||
+                          "Failed to generate response. Please try again."}
+                      </div>
+                      {error.message?.includes("quota") && (
+                        <div className="mt-2 text-xs opacity-75">
+                          Tip: You may need to wait for your API quota to reset
+                          or use a different model.
+                        </div>
+                      )}
+                    </div>
+                  </MessageContent>
+                </Message>
+              )}
             </ConversationContent>
             <ConversationScrollButton />
           </Conversation>

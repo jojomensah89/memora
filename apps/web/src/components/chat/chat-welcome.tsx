@@ -40,64 +40,6 @@ type CreateChatResponse = {
   useWebSearch: boolean;
 };
 
-type StartInitialStreamInput = {
-  chatId: string;
-  messageId: string;
-  text: string;
-  modelId: string;
-  useWebSearch: boolean;
-};
-
-async function startInitialStream(input: StartInitialStreamInput) {
-  try {
-    const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
-    const endpoint = serverUrl ? `${serverUrl}/api/v1/chat` : "/api/v1/chat";
-
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({
-        id: input.chatId,
-        messages: [
-          {
-            id: input.messageId,
-            role: "user",
-            parts: [
-              {
-                type: "text",
-                text: input.text,
-              },
-            ],
-            createdAt: new Date().toISOString(),
-          },
-        ],
-        model: input.modelId,
-        webSearch: input.useWebSearch,
-      }),
-    });
-
-    if (!(response.ok && response.body)) {
-      return;
-    }
-
-    const reader = response.body.getReader();
-
-    try {
-      while (true) {
-        const { done } = await reader.read();
-        if (done) {
-          break;
-        }
-      }
-    } finally {
-      reader.releaseLock();
-    }
-  } catch (_) {
-    // Swallow errors to avoid blocking navigation
-  }
-}
-
 const ChatWelcome = () => {
   const [prompt, setPrompt] = useState("");
   const [useWebSearch, setUseWebSearch] = useState<boolean>(false);
@@ -126,18 +68,11 @@ const ChatWelcome = () => {
         useWebSearch,
         attachments: [],
       }),
-    onSuccess: (data, variables) => {
-      startInitialStream({
-        chatId: data.chatId,
-        messageId: data.messageId,
-        text: variables,
-        modelId: data.modelId,
-        useWebSearch: data.useWebSearch,
-      }).finally(() => {
-        queryClient.invalidateQueries({ queryKey: ["chat", data.chatId] });
-      });
-
+    onSuccess: (data) => {
+      // Simple: Just navigate, let chat interface handle streaming
       router.push(`/chat/${data.chatId}`);
+
+      // Invalidate queries so chat interface fetches fresh data
       queryClient.invalidateQueries({ queryKey: ["chats"] });
     },
   });

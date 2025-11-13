@@ -1,8 +1,9 @@
 import { Hono } from "hono";
 import { authMiddleware } from "../middleware/auth";
+import { createChatModule } from "../modules/chat/chat.module";
 import type { AuthVariables } from "../types/auth.types";
 import type { AppContext } from "../types/hono.types";
-import chatRoutes from "./chat.routes";
+import { createChatRoutes } from "./chat.routes";
 import chatShareRoutes from "./chat-share.routes";
 import contextRoutes from "./context.routes";
 import messageRoutes from "./message.routes";
@@ -21,6 +22,10 @@ export function setupRoutes(app: Hono<{ Variables: AuthVariables }>) {
       user: authUser,
     });
   });
+
+  // Instantiate chat module and create routes
+  const chatModule = createChatModule();
+  const chatRoutes = createChatRoutes(chatModule);
 
   protectedRoutes.route("/chat", streamingRoutes);
   protectedRoutes.route("/chats", chatRoutes);

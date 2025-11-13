@@ -58,8 +58,8 @@ export function getModelInstance(
       return anthropic(modelId);
 
     case "GEMINI":
-      if (!process.env.GEMINI_API_KEY) {
-        throw new InvalidModelError("GEMINI_API_KEY is not configured");
+      if (!process.env.GOOGLE_API_KEY) {
+        throw new InvalidModelError("GOOGLE_API_KEY is not configured");
       }
       return google(modelId);
 
