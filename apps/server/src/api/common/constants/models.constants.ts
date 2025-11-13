@@ -13,6 +13,44 @@ export type ModelConfig = {
 };
 
 export const AVAILABLE_MODELS: ModelConfig[] = [
+  // Gemini Models (Primary)
+  {
+    id: "gemini-2.0-flash-exp",
+    name: "Gemini 2.0 Flash",
+    provider: "GEMINI",
+    contextWindow: 1_000_000,
+    supportsStreaming: true,
+    supportsTools: true,
+    supportsVision: true,
+  },
+  {
+    id: "gemini-2.0-flash-thinking-exp-01-21",
+    name: "Gemini 2.0 Flash Thinking",
+    provider: "GEMINI",
+    contextWindow: 1_000_000,
+    supportsStreaming: true,
+    supportsTools: true,
+    supportsVision: true,
+  },
+  {
+    id: "gemini-1.5-pro-latest",
+    name: "Gemini 1.5 Pro",
+    provider: "GEMINI",
+    contextWindow: 2_000_000,
+    supportsStreaming: true,
+    supportsTools: true,
+    supportsVision: true,
+  },
+  {
+    id: "gemini-1.5-flash-latest",
+    name: "Gemini 1.5 Flash",
+    provider: "GEMINI",
+    contextWindow: 1_000_000,
+    supportsStreaming: true,
+    supportsTools: true,
+    supportsVision: true,
+  },
+
   // Claude Models
   {
     id: "claude-3-5-sonnet-20241022",
@@ -31,26 +69,6 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
     supportsStreaming: true,
     supportsTools: true,
     supportsVision: false,
-  },
-
-  // Gemini Models
-  {
-    id: "gemini-2.0-flash-exp",
-    name: "Gemini 2.0 Flash (Experimental)",
-    provider: "GEMINI",
-    contextWindow: 1_000_000,
-    supportsStreaming: true,
-    supportsTools: true,
-    supportsVision: true,
-  },
-  {
-    id: "gemini-1.5-pro",
-    name: "Gemini 1.5 Pro",
-    provider: "GEMINI",
-    contextWindow: 2_000_000,
-    supportsStreaming: true,
-    supportsTools: true,
-    supportsVision: true,
   },
 
   // OpenAI Models

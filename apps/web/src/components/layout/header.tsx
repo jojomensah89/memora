@@ -8,6 +8,7 @@ import {
   TrashIcon,
   VolumeOffIcon,
 } from "lucide-react";
+import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
 import {
@@ -18,21 +19,20 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { chats } from "@/lib/utils";
+import { useChat } from "@/hooks/use-chat";
 
-type HeaderProps = {
-  chatId: number;
-};
-
-const Header: React.FC<HeaderProps> = ({ chatId }) => {
-  const chat = chats.find((c) => c.id === chatId);
-  const chatTitle = chat?.title;
+const Header: React.FC = () => {
+  const params = useParams();
+  const chatId = params?.chatId as string | undefined;
+  const { data: chat, isLoading } = useChat(chatId);
 
   return (
     <header className="m-1 flex h-10 w-full items-center justify-between">
-      {chatTitle && (
+      {isLoading ? (
+        <div className="text-muted-foreground text-sm">Loading...</div>
+      ) : chat?.title ? (
         <ButtonGroup>
-          <Button variant="ghost">{chatTitle}</Button>
+          <Button variant="ghost">{chat.title}</Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button className="!pl-2" variant="ghost">
@@ -43,11 +43,11 @@ const Header: React.FC<HeaderProps> = ({ chatId }) => {
               <DropdownMenuGroup>
                 <DropdownMenuItem>
                   <VolumeOffIcon />
-                  Star{" "}
+                  Star
                 </DropdownMenuItem>
                 <DropdownMenuItem>
                   <CheckIcon />
-                  Rename{" "}
+                  Rename
                 </DropdownMenuItem>
                 <DropdownMenuItem>
                   <AlertTriangleIcon />
@@ -73,7 +73,7 @@ const Header: React.FC<HeaderProps> = ({ chatId }) => {
             </DropdownMenuContent>
           </DropdownMenu>
         </ButtonGroup>
-      )}
+      ) : null}
     </header>
   );
 };

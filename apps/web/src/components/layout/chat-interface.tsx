@@ -1,8 +1,9 @@
 "use client";
-import { useChat } from "@ai-sdk/react";
-
+import { useChat as useAIChat } from "@ai-sdk/react";
+import { useQuery } from "@tanstack/react-query";
+import { DefaultChatTransport, type UIMessage } from "ai";
 import { GlobeIcon } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Conversation,
   ConversationContent,
@@ -32,19 +33,163 @@ import {
   PromptInputTools,
 } from "@/components/ai-elements/prompt-input";
 import { Response } from "@/components/ai-elements/response";
-import { models } from "@/lib/utils";
+import { useChat as useChatData } from "@/hooks/use-chat";
+import { fetchModels, type Model } from "@/lib/utils";
 
 type ChatInterfaceProps = {
   chatId: string;
 };
 
 const ChatInterface: React.FC<ChatInterfaceProps> = ({ chatId }) => {
+  // Fetch chat data including messages
+  const { data: chatData, isLoading } = useChatData(chatId);
+
+  // Convert backend messages to AI SDK format
+  const initialMessages = useMemo<UIMessage[]>(() => {
+    if (!chatData?.messages) {
+      return [];
+    }
+
+    return chatData.messages.map((msg) => {
+      const message: UIMessage = {
+        id: msg.id,
+        role: msg.role,
+        parts: [
+          {
+            type: "text",
+            text: msg.content,
+          },
+        ],
+        createdAt: msg.createdAt,
+      };
+
+      return message;
+    });
+  }, [chatData]);
+
+  // Fetch models from backend
+  const { data: modelsData } = useQuery({
+    queryKey: ["models"],
+    queryFn: fetchModels,
+    staleTime: Number.POSITIVE_INFINITY, // Models don't change often
+  });
+
+  const models = modelsData || [];
+  const defaultModel = useMemo(() => {
+    const firstGemini = models.find((m: Model) => m.provider === "GEMINI");
+    return firstGemini?.modelId || models[0]?.modelId || "gemini-2.0-flash-exp";
+  }, [models]);
+
+  const transportApi = useMemo(() => {
+    const base = process.env.NEXT_PUBLIC_SERVER_URL;
+    if (base) {
+      return `${base}/api/v1/chat`;
+    }
+    return "/api/v1/chat";
+  }, []);
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="relative min-h-screen bg-background">
+        <div className="flex flex-1 items-center justify-center">
+          <div className="text-center">
+            <div className="mb-4 h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+            <p className="text-muted-foreground">Loading chat...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!chatData) {
+    return (
+      <div className="relative min-h-screen bg-background">
+        <div className="flex flex-1 items-center justify-center">
+          <div className="text-center">
+            <p className="text-muted-foreground">Unable to load chat.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <ChatPanel
+      chatId={chatId}
+      defaultModel={defaultModel}
+      initialMessages={initialMessages}
+      key={`${chatId}-${chatData.updatedAt ?? "initial"}`}
+      models={models}
+      transportApi={transportApi}
+    />
+  );
+};
+
+export default ChatInterface;
+
+type ChatPanelProps = {
+  chatId: string;
+  initialMessages: UIMessage[];
+  models: Model[];
+  defaultModel: string;
+  transportApi: string;
+};
+
+const ChatPanel: React.FC<ChatPanelProps> = ({
+  chatId,
+  initialMessages,
+  models,
+  defaultModel,
+  transportApi,
+}) => {
   const [text, setText] = useState<string>("");
-  const [model, setModel] = useState<string>(models[0].id);
   const [useWebSearch, setUseWebSearch] = useState<boolean>(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [model, setModel] = useState<string>(defaultModel);
 
-  const { messages, status, sendMessage } = useChat({ id: chatId });
+  useEffect(() => {
+    if (!models.find((item) => item.modelId === model)) {
+      setModel(defaultModel);
+    }
+  }, [defaultModel, model, models]);
+
+  const { messages, status, sendMessage, error } = useAIChat({
+    id: chatId,
+    initialMessages,
+    transport: new DefaultChatTransport({
+      api: transportApi,
+      credentials: "include",
+    }),
+  });
+
+  // Auto-trigger streaming if last message is from user (first navigation)
+  useEffect(() => {
+    const lastMessage = initialMessages.at(-1);
+
+    // If we just navigated here and last message is user, trigger AI response
+    if (
+      lastMessage?.role === "user" &&
+      messages.length === initialMessages.length &&
+      initialMessages.length > 0
+    ) {
+      const userText =
+        lastMessage.parts.find((part) => part.type === "text")?.text || "";
+
+      // Trigger the AI response automatically
+      sendMessage(
+        {
+          text: userText,
+        },
+        {
+          body: {
+            model: defaultModel,
+            webSearch: false,
+          },
+        }
+      );
+    }
+  }, [initialMessages, messages.length, defaultModel, sendMessage]); // Only trigger on initial mount
 
   const handleSubmit = (message: PromptInputMessage) => {
     const hasText = Boolean(message.text);
@@ -93,6 +238,30 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ chatId }) => {
                   </MessageContent>
                 </Message>
               ))}
+
+              {/* Show error message if streaming fails */}
+              {error && (
+                <Message from="assistant">
+                  <MessageContent>
+                    <div className="rounded-md border border-destructive/20 p-2 text-destructive">
+                      <div className="mb-1 flex items-center gap-2">
+                        <span className="text-lg">⚠️</span>
+                        <span className="font-medium">Error</span>
+                      </div>
+                      <div className="text-sm opacity-90">
+                        {error.message ||
+                          "Failed to generate response. Please try again."}
+                      </div>
+                      {error.message?.includes("quota") && (
+                        <div className="mt-2 text-xs opacity-75">
+                          Tip: You may need to wait for your API quota to reset
+                          or use a different model.
+                        </div>
+                      )}
+                    </div>
+                  </MessageContent>
+                </Message>
+              )}
             </ConversationContent>
             <ConversationScrollButton />
           </Conversation>
@@ -144,8 +313,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ chatId }) => {
                   <PromptInputModelSelectContent>
                     {models.map((modelItem) => (
                       <PromptInputModelSelectItem
-                        key={modelItem.id}
-                        value={modelItem.id}
+                        key={modelItem.modelId}
+                        value={modelItem.modelId}
                       >
                         {modelItem.name}
                       </PromptInputModelSelectItem>
@@ -161,5 +330,3 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ chatId }) => {
     </div>
   );
 };
-
-export default ChatInterface;

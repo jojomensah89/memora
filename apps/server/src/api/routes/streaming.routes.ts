@@ -3,10 +3,17 @@
  * Handles real-time AI response streaming compatible with Vercel AI SDK's useChat hook
  */
 
-import { streamText } from "ai";
+import {
+  convertToModelMessages,
+  createIdGenerator,
+  streamText,
+  type UIMessage,
+  validateUIMessages,
+} from "ai";
+
 import { Hono } from "hono";
 import { z } from "zod";
-import { AuthenticationError, ChatNotFoundError } from "../common/errors";
+import { ChatNotFoundError } from "../common/errors";
 import {
   getModelInstance,
   getProviderFromModel,
@@ -26,8 +33,10 @@ import { RuleRepository } from "../modules/rules/rule.repository";
 import { RuleService } from "../modules/rules/rule.service";
 import { TokenUsageRepository } from "../modules/token-usage/token-usage.repository";
 import { TokenUsageService } from "../modules/token-usage/token-usage.service";
+import type { AuthVariables } from "../types/auth.types";
+import type { AppContext } from "../types/hono.types";
 
-const app = new Hono();
+const app = new Hono<{ Variables: AuthVariables }>();
 
 // Initialize services
 const chatRepository = new ChatRepository();
@@ -46,37 +55,102 @@ const tokenUsageRepository = new TokenUsageRepository();
 const tokenUsageService = new TokenUsageService(tokenUsageRepository);
 
 /**
- * Vercel AI SDK message format
+ * Save messages atomically with proper error handling
  */
-const messageSchema = z.object({
-  role: z.enum(["user", "assistant", "system"]),
-  content: z.string(),
-  id: z.string().optional(),
-});
+type SaveMessagesInput = {
+  chatId: string;
+  userId: string;
+  messages: UIMessage[];
+  model: string;
+  provider: string;
+};
 
-const streamRequestSchema = z.object({
-  id: z.string(), // chatId
-  messages: z.array(messageSchema),
-  data: z
-    .object({
-      model: z.string().optional(),
-      webSearch: z.boolean().optional(),
-    })
-    .optional(),
-});
+async function saveMessages(input: SaveMessagesInput): Promise<void> {
+  // Get existing messages to avoid duplicates
+  const existingMessagesResult = await messageService.getMessagesByChat(
+    input.userId,
+    { chatId: input.chatId, limit: 1000 }
+  );
+  const existingMessageIds = new Set(
+    existingMessagesResult.messages.map((msg) => msg.id)
+  );
 
-/**
- * POST /api/chat
- * Streaming endpoint compatible with Vercel AI SDK's useChat hook
- */
-app.post("/", async (c: any) => {
-  const authUser = c.get("authUser");
-  if (!authUser) {
-    throw new AuthenticationError("Login required");
+  // Save each new message
+  for (const message of input.messages) {
+    // Skip if message already exists
+    if (existingMessageIds.has(message.id)) {
+      continue;
+    }
+
+    const content = message.parts
+      .filter((part) => part.type === "text")
+      .map((part) => part.text)
+      .join("");
+
+    const createdAt = message.createdAt
+      ? new Date(message.createdAt)
+      : new Date();
+
+    await messageService.create({
+      id: message.id,
+      chatId: input.chatId,
+      userId: input.userId,
+      content,
+      role: message.role,
+      metadata: {
+        parts: message.parts,
+        model: input.model,
+        provider: input.provider,
+        createdAt: createdAt.toISOString(),
+      },
+      createdAt,
+      attachments: [],
+    });
+
+    existingMessageIds.add(message.id);
   }
 
+  // Update chat's last activity
+  await chatRepository.updateLastActivity(input.chatId);
+
+  // Generate title for new chats if needed
+  const chat = await chatService.getChatById(input.chatId, input.userId);
+  if (!chat?.title && input.messages.length > 0) {
+    const lastUserMessage = input.messages
+      .filter((m) => m.role === "user")
+      .pop()
+      ?.parts.find((p) => p.type === "text")?.text;
+
+    if (lastUserMessage) {
+      const title = generateChatTitle(lastUserMessage);
+      await chatService.updateChat(input.userId, {
+        id: input.chatId,
+        title,
+      });
+    }
+  }
+}
+
+/**
+ * AI SDK v5 message format - accept UIMessage format
+ */
+const streamRequestSchema = z.object({
+  id: z.string(), // chatId
+  messages: z.array(z.any()), // AI SDK v5 UIMessage format
+  model: z.string().optional(), // Move to top level
+  webSearch: z.boolean().optional(), // Move to top level
+});
+
+app.post("/", async (c: AppContext) => {
+  const authUser = c.get("authUser");
+
   const body = await c.req.json();
-  const { id: chatId, messages, data } = streamRequestSchema.parse(body);
+  const { id: chatId, messages, model } = streamRequestSchema.parse(body);
+
+  // Validate UI messages to ensure schema compatibility
+  const uiMessages = await validateUIMessages({
+    messages: messages as UIMessage[],
+  });
 
   // 1. Fetch chat and verify ownership
   const chat = await chatService.getChatById(chatId, authUser.id);
@@ -93,114 +167,78 @@ app.post("/", async (c: any) => {
   // 3. Build system prompt with rules
   const systemPrompt = buildSystemPrompt(rules);
 
-  // 4. Inject context into messages
-  const enhancedMessages = injectContext(
-    messages.map((m) => ({
-      role: m.role as "user" | "assistant" | "system",
-      content: m.content,
-    })),
-    contextItems
-  );
+  // 4. Convert UI messages to model messages for internal processing
+  const modelMessages = convertToModelMessages(uiMessages);
 
-  // 5. Add system prompt at the beginning
+  // 5. Inject context into model messages
+  const messagesWithContext = injectContext(modelMessages, contextItems);
+
+  // 6. Add system prompt at the beginning
   const finalMessages = [
     { role: "system" as const, content: systemPrompt },
-    ...enhancedMessages,
+    ...messagesWithContext,
   ];
 
-  // 6. Get model instance
-  const provider = getProviderFromModel(data?.model || chat.model);
-  const modelInstance = getModelInstance(provider, data?.model || chat.model);
+  // 7. Get model instance
+  const provider = getProviderFromModel(model || chat.model);
+  const modelInstance = getModelInstance(provider, model || chat.model);
 
-  // 7. Get the last user message for saving
-  const lastUserMessage = messages
-    .filter((m) => m.role === "user")
-    .pop()?.content;
-
-  // 8. Save user message if this is a new message
-  if (lastUserMessage && messages.length === 1) {
-    // This is the first message in a new chat
-    await messageService.create({
-      chatId,
-      userId: authUser.id,
-      content: lastUserMessage,
-      role: "user",
-    });
-
-    // Generate title if chat doesn't have one
-    if (!chat.title) {
-      const title = generateChatTitle(lastUserMessage);
-      await chatService.updateChat(authUser.id, {
-        id: chatId,
-        title,
-      });
-    }
-  }
-
-  // 9. Stream AI response
-  const result = await streamText({
+  // 8. Stream AI response
+  const result = streamText({
     model: modelInstance,
     messages: finalMessages,
     temperature: 0.7,
     onFinish: async (completion) => {
       try {
-        // Save assistant message
-        await messageService.create({
-          chatId,
-          userId: authUser.id,
-          content: completion.text,
-          role: "assistant",
-        });
-
         // Track token usage
         const usage = completion.usage;
         if (usage) {
           await tokenUsageService.create({
             userId: authUser.id,
             provider,
-            modelId: data?.model || chat.model,
+            modelId: model || chat.model,
             inputTokens: usage.inputTokens || 0,
             outputTokens: usage.outputTokens || 0,
             chatId,
           });
         }
-
-        // Update chat's updatedAt timestamp
-        await chatRepository.updateLastActivity(chatId);
       } catch (_error) {
         // Error caught but stream continues - no action needed
       }
     },
   });
 
-  // 10. Return streaming response
-  return result.toTextStreamResponse();
+  // 9. Return UI message streaming response with proper parameters
+  return result.toUIMessageStreamResponse({
+    originalMessages: uiMessages,
+    generateMessageId: createIdGenerator({
+      prefix: "msg",
+      size: 16,
+    }),
+    onFinish: async ({ messages }) => {
+      // Save all messages including AI response atomically
+      await saveMessages({
+        chatId,
+        userId: authUser.id,
+        messages,
+        model: model || chat.model,
+        provider,
+      });
+    },
+  });
 });
 
-/**
- * GET /api/chat/models
- * List available AI models
- */
-app.get("/models", async (c: any) => {
-  const authUser = c.get("authUser");
-  if (!authUser) {
-    throw new AuthenticationError("Login required");
-  }
-
+app.get("/models", async (c: AppContext) => {
   const { getAllAvailableModels } = await import("../lib/ai/provider-factory");
   const models = getAllAvailableModels();
 
   return c.json({
     models,
-    default: "claude-3-5-sonnet-20241022",
+    default: "gemini-2.0-flash-exp",
   });
 });
 
-/**
- * GET /api/chat/health
- * Check streaming endpoint health
- */
-app.get("/health", async (c: any) => {
+app.get("/health", async (c: AppContext) => {
   const { checkAPIKeys } = await import("../lib/ai/provider-factory");
   const keys = checkAPIKeys();
 

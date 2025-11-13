@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { GlobeIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -28,26 +28,52 @@ import {
 } from "@/components/ai-elements/prompt-input";
 import { Gl } from "@/components/gl";
 import { useUser } from "@/hooks/use-user";
-import { models } from "@/lib/utils";
-import { apiClient } from "@/utils/api-client";
+import { fetchModels, type Model } from "@/lib/utils";
+import { apiClient, queryClient } from "@/utils/api-client";
+
+type CreateChatResponse = {
+  id: string;
+  chatId: string;
+  messageId: string;
+  provider: string;
+  modelId: string;
+  useWebSearch: boolean;
+};
 
 const ChatWelcome = () => {
   const [prompt, setPrompt] = useState("");
-  const [model, setModel] = useState<string>(models[0].id);
   const [useWebSearch, setUseWebSearch] = useState<boolean>(false);
   const router = useRouter();
   const { user, isPending } = useUser();
 
-  const createChatMutation = useMutation({
+  // Fetch models from backend
+  const { data: modelsData } = useQuery({
+    queryKey: ["models"],
+    queryFn: fetchModels,
+    staleTime: Number.POSITIVE_INFINITY, // Models don't change often
+  });
+
+  const models = modelsData || [];
+  const [model, setModel] = useState<string>(() => {
+    // Default to first Gemini model or the first available model
+    const firstGemini = models.find((m: Model) => m.provider === "GEMINI");
+    return firstGemini?.modelId || models[0]?.modelId || "gemini-2.0-flash-exp";
+  });
+
+  const createChatMutation = useMutation<CreateChatResponse, Error, string>({
     mutationFn: async (initialMessage: string) =>
-      apiClient.post<{ id: string }>("/api/chats", {
+      apiClient.post<CreateChatResponse>("/api/chats", {
         initialMessage,
         modelId: model,
         useWebSearch,
         attachments: [],
       }),
     onSuccess: (data) => {
-      router.push(`/chat/${data.id}`);
+      // Simple: Just navigate, let chat interface handle streaming
+      router.push(`/chat/${data.chatId}`);
+
+      // Invalidate queries so chat interface fetches fresh data
+      queryClient.invalidateQueries({ queryKey: ["chats"] });
     },
   });
 
@@ -74,6 +100,7 @@ const ChatWelcome = () => {
     const text = message.text || "";
     if (text.trim()) {
       createChatMutation.mutate(text);
+      setPrompt("");
     }
   };
 
@@ -138,8 +165,8 @@ const ChatWelcome = () => {
                     <PromptInputModelSelectContent>
                       {models.map((modelItem) => (
                         <PromptInputModelSelectItem
-                          key={modelItem.id}
-                          value={modelItem.id}
+                          key={modelItem.modelId}
+                          value={modelItem.modelId}
                         >
                           {modelItem.name}
                         </PromptInputModelSelectItem>

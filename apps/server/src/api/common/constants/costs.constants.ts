@@ -27,11 +27,15 @@ export const AI_PROVIDER_COSTS = {
       input: 0.0, // Free during preview
       output: 0.0,
     },
-    "gemini-1.5-pro": {
+    "gemini-2.0-flash-thinking-exp-01-21": {
+      input: 0.0, // Free during preview
+      output: 0.0,
+    },
+    "gemini-1.5-pro-latest": {
       input: 1.25,
       output: 5.0,
     },
-    "gemini-1.5-flash": {
+    "gemini-1.5-flash-latest": {
       input: 0.075,
       output: 0.3,
     },

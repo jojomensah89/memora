@@ -4,37 +4,37 @@ import { twMerge } from "tailwind-merge";
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
-export type Chat = {
-  id: number;
-  title: string;
-  lastMessage: string;
-  timestamp: string;
-  unread: number;
-  avatar: string;
-  status: "active" | "idle";
-};
-export const chats: Chat[] = [
-  {
-    id: 1,
-    title: "Project Alpha",
-    lastMessage: "Let's schedule a meeting for next week.",
-    timestamp: "2024-06-20T10:30:00Z",
-    unread: 2,
-    avatar: "/avatars/project-alpha.png",
-    status: "active",
-  },
-  {
-    id: 2,
-    title: "Marketing Team",
-    lastMessage: "The new campaign is live!",
-    timestamp: "2024-06-19T14:15:00Z",
-    unread: 0,
-    avatar: "/avatars/marketing-team.png",
-    status: "idle",
-  },
-];
 
-export const models = [
-  { id: "gpt-4o", name: "GPT-4o" },
-  { id: "claude-opus-4-20250514", name: "Claude 4 Opus" },
-];
+export type Model = {
+  provider: string;
+  modelId: string;
+  name: string;
+};
+
+export async function fetchModels(): Promise<Model[]> {
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/chat/models`,
+    {
+      credentials: "include",
+    }
+  );
+
+  if (!response.ok) {
+    // Fallback to basic Gemini models if API fails
+    return [
+      {
+        provider: "GEMINI",
+        modelId: "gemini-2.0-flash-exp",
+        name: "Gemini 2.0 Flash",
+      },
+      {
+        provider: "GEMINI",
+        modelId: "gemini-1.5-pro-latest",
+        name: "Gemini 1.5 Pro",
+      },
+    ];
+  }
+
+  const data = await response.json();
+  return data.models || [];
+}

@@ -13,8 +13,19 @@ export type AIProvider = "CLAUDE" | "GEMINI" | "OPENAI";
 
 /**
  * Model configurations for each provider
+ * Gemini is the primary provider with the latest models
  */
 const MODEL_CONFIG = {
+  GEMINI: {
+    prefix: "gemini",
+    defaultModel: "gemini-2.0-flash-exp",
+    models: [
+      "gemini-2.0-flash-exp",
+      "gemini-2.0-flash-thinking-exp-01-21",
+      "gemini-1.5-pro-latest",
+      "gemini-1.5-flash-latest",
+    ],
+  },
   CLAUDE: {
     prefix: "claude",
     defaultModel: "claude-3-5-sonnet-20241022",
@@ -23,15 +34,6 @@ const MODEL_CONFIG = {
       "claude-3-5-haiku-20241022",
       "claude-3-opus-20240229",
       "claude-opus-4-20250514",
-    ],
-  },
-  GEMINI: {
-    prefix: "gemini",
-    defaultModel: "gemini-2.0-flash-exp",
-    models: [
-      "gemini-2.0-flash-exp",
-      "gemini-1.5-pro-latest",
-      "gemini-1.5-flash-latest",
     ],
   },
   OPENAI: {
@@ -115,6 +117,7 @@ export function getAvailableModels(provider: AIProvider): string[] {
 
 /**
  * Get all available models across all providers
+ * Gemini models are listed first as primary provider
  */
 export function getAllAvailableModels(): Array<{
   provider: AIProvider;
@@ -122,6 +125,27 @@ export function getAllAvailableModels(): Array<{
   name: string;
 }> {
   return [
+    // Gemini models (Primary)
+    {
+      provider: "GEMINI",
+      modelId: "gemini-2.0-flash-exp",
+      name: "Gemini 2.0 Flash",
+    },
+    {
+      provider: "GEMINI",
+      modelId: "gemini-2.0-flash-thinking-exp-01-21",
+      name: "Gemini 2.0 Flash Thinking",
+    },
+    {
+      provider: "GEMINI",
+      modelId: "gemini-1.5-pro-latest",
+      name: "Gemini 1.5 Pro",
+    },
+    {
+      provider: "GEMINI",
+      modelId: "gemini-1.5-flash-latest",
+      name: "Gemini 1.5 Flash",
+    },
     // Claude models
     {
       provider: "CLAUDE",
@@ -142,22 +166,6 @@ export function getAllAvailableModels(): Array<{
       provider: "CLAUDE",
       modelId: "claude-3-opus-20240229",
       name: "Claude 3 Opus",
-    },
-    // Gemini models
-    {
-      provider: "GEMINI",
-      modelId: "gemini-2.0-flash-exp",
-      name: "Gemini 2.0 Flash (Experimental)",
-    },
-    {
-      provider: "GEMINI",
-      modelId: "gemini-1.5-pro-latest",
-      name: "Gemini 1.5 Pro",
-    },
-    {
-      provider: "GEMINI",
-      modelId: "gemini-1.5-flash-latest",
-      name: "Gemini 1.5 Flash",
     },
     // OpenAI models
     { provider: "OPENAI", modelId: "gpt-4o", name: "GPT-4o" },

@@ -15,38 +15,24 @@ import {
   SidebarMenuItem,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { useChats } from "@/hooks/use-chats";
 import { useUser } from "@/hooks/use-user";
 import { useUIStore } from "@/stores/use-ui-store";
 import { NavUser } from "../nav-user";
 
-type Chat = {
-  id: number;
-  title: string;
-  lastMessage: string;
-  timestamp: string;
-  unread: number;
-  avatar: string;
-  status: "active" | "idle";
-};
-
-type LeftSidebarProps = {
-  chats: Chat[];
-};
-
-const LeftSidebar: React.FC<LeftSidebarProps> = ({ chats }) => {
+const LeftSidebar: React.FC = () => {
   const { setActiveChatId, activeChatId } = useUIStore();
   const router = useRouter();
   const { user, isPending } = useUser();
+  const { data: chatsData, isLoading: chatsLoading } = useChats();
 
   const handleNewChat = () => {
-    // Navigate to new chat
     setActiveChatId(null);
     router.push("/chat");
   };
 
-  const handleChatSelect = (chatId: number) => {
+  const handleChatSelect = (chatId: string) => {
     setActiveChatId(chatId);
-    // Navigate to specific chat
     router.push(`/chat/${chatId}`);
   };
 
@@ -115,25 +101,40 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ chats }) => {
           </SidebarMenuItem>
         </SidebarMenu>
 
-        <div className="mt-2">
-          <SidebarGroupLabel className="mx-1"> Recents</SidebarGroupLabel>
+        <div className="mt-2 group-data-[state=collapsed]:hidden">
+          <SidebarGroupLabel className="mx-1">Recents</SidebarGroupLabel>
 
           <SidebarMenu className="p-1">
             <ScrollArea className="h-full">
-              {chats.map((chat) => (
-                <SidebarMenuItem key={chat.id}>
-                  <SidebarMenuButton
-                    asChild
-                    className="w-full cursor-pointer justify-start"
-                    isActive={activeChatId === chat.id}
-                    onClick={() => handleChatSelect(chat.id)}
-                  >
-                    <span className="truncate group-data-[state=collapsed]:hidden">
-                      {chat.title}
-                    </span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {(() => {
+                if (chatsLoading) {
+                  return (
+                    <div className="px-3 py-2 text-muted-foreground text-xs">
+                      Loading chats...
+                    </div>
+                  );
+                }
+                if (chatsData?.data && chatsData.data.length > 0) {
+                  return chatsData.data.map((chat) => (
+                    <SidebarMenuItem key={chat.id}>
+                      <SidebarMenuButton
+                        className="w-full cursor-pointer justify-start"
+                        isActive={activeChatId === chat.id}
+                        onClick={() => handleChatSelect(chat.id)}
+                      >
+                        <span className="truncate group-data-[state=collapsed]:hidden">
+                          {chat.title}
+                        </span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ));
+                }
+                return (
+                  <div className="px-3 py-2 text-muted-foreground text-xs">
+                    No chats yet
+                  </div>
+                );
+              })()}
             </ScrollArea>
           </SidebarMenu>
         </div>
