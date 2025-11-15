@@ -1,3 +1,4 @@
+import type { UIMessage } from "ai";
 import { handleError } from "../../common/errors";
 import type {
   CreateChatInput,
@@ -66,6 +67,18 @@ export class ChatController {
   async generateAIResponse(userId: string, chatId: string, message: string) {
     try {
       return await this.service.generateAIResponse(userId, chatId, message);
+    } catch (error) {
+      handleError(error);
+    }
+  }
+
+  async updateChatMessages(
+    userId: string,
+    chatId: string,
+    messages: UIMessage[]
+  ) {
+    try {
+      return await this.service.saveChatMessages(userId, chatId, messages);
     } catch (error) {
       handleError(error);
     }

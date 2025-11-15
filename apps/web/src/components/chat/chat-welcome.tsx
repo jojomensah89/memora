@@ -1,9 +1,10 @@
 "use client";
 
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useChat } from "@ai-sdk/react";
+import { useQuery } from "@tanstack/react-query";
+import { DefaultChatTransport, generateId } from "ai";
 import { GlobeIcon } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   PromptInput,
   PromptInputActionAddAttachments,
@@ -29,21 +30,15 @@ import {
 import { Gl } from "@/components/gl";
 import { useUser } from "@/hooks/use-user";
 import { fetchModels, type Model } from "@/lib/utils";
-import { apiClient, queryClient } from "@/utils/api-client";
-
-type CreateChatResponse = {
-  id: string;
-  chatId: string;
-  messageId: string;
-  provider: string;
-  modelId: string;
-  useWebSearch: boolean;
-};
 
 const ChatWelcome = () => {
   const [prompt, setPrompt] = useState("");
   const [useWebSearch, setUseWebSearch] = useState<boolean>(false);
-  const router = useRouter();
+  const [model, setModel] = useState<string>("gemini-2.0-flash-exp");
+
+  // Generate chatId once to maintain state across re-renders
+  const chatId = useMemo(() => generateId(), []);
+
   const { user, isPending } = useUser();
 
   // Fetch models from backend
@@ -54,26 +49,39 @@ const ChatWelcome = () => {
   });
 
   const models = modelsData || [];
-  const [model, setModel] = useState<string>(() => {
-    // Default to first Gemini model or the first available model
-    const firstGemini = models.find((m: Model) => m.provider === "GEMINI");
-    return firstGemini?.modelId || models[0]?.modelId || "gemini-2.0-flash-exp";
-  });
 
-  const createChatMutation = useMutation<CreateChatResponse, Error, string>({
-    mutationFn: async (initialMessage: string) =>
-      apiClient.post<CreateChatResponse>("/api/chats", {
-        initialMessage,
-        modelId: model,
-        useWebSearch,
-        attachments: [],
-      }),
-    onSuccess: (data) => {
-      // Simple: Just navigate, let chat interface handle streaming
-      router.push(`/chat/${data.chatId}`);
+  // Set default model when models are loaded
+  useMemo(() => {
+    if (models.length > 0) {
+      const firstGemini = models.find((m: Model) => m.provider === "GEMINI");
+      setModel(
+        firstGemini?.modelId || models[0]?.modelId || "gemini-2.0-flash-exp"
+      );
+    }
+  }, [models]);
 
-      // Invalidate queries so chat interface fetches fresh data
-      queryClient.invalidateQueries({ queryKey: ["chats"] });
+  const { sendMessage, status } = useChat({
+    id: chatId,
+    transport: new DefaultChatTransport({
+      api: "/api/v1/chats", // POST endpoint
+      prepareSendMessagesRequest({ messages }) {
+        return {
+          body: {
+            id: chatId,
+            messages,
+            model,
+            useWebSearch,
+            attachments: [],
+          },
+        };
+      },
+    }),
+    onData(message) {
+      // Listen for chat-created event
+      if (message.type === "new-chat-created") {
+        // Update URL without navigation
+        globalThis.history.replaceState({}, "", `/chat/${chatId}`);
+      }
     },
   });
 
@@ -97,11 +105,16 @@ const ChatWelcome = () => {
   }
 
   const handleSubmit = (message: PromptInputMessage) => {
-    const text = message.text || "";
-    if (text.trim()) {
-      createChatMutation.mutate(text);
-      setPrompt("");
+    if (!message.text?.trim()) {
+      return;
     }
+
+    sendMessage({
+      text: message.text,
+      files: message.files,
+    });
+
+    setPrompt("");
   };
 
   return (
@@ -174,9 +187,7 @@ const ChatWelcome = () => {
                     </PromptInputModelSelectContent>
                   </PromptInputModelSelect>
                 </PromptInputTools>
-                <PromptInputSubmit
-                  disabled={createChatMutation.isPending || !prompt.trim()}
-                />
+                <PromptInputSubmit disabled={!prompt.trim()} status={status} />
               </PromptInputFooter>
             </PromptInput>
           </div>

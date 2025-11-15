@@ -1,4 +1,5 @@
 import type { AIProvider, AttachmentKind, Chat, Prisma } from "@prisma/client";
+import type { UIMessage } from "ai";
 import { BaseRepository } from "../../common/base";
 import { AVAILABLE_MODELS } from "../../common/constants";
 import { DatabaseError } from "../../common/errors";
@@ -31,6 +32,7 @@ type CreateChatWithMessageParams = {
   forkedFromMessageId?: string;
   attachments: CreateChatAttachmentData[];
   metadata?: Prisma.InputJsonValue;
+  chatId?: string; // Optional pre-generated ID from frontend
 };
 
 type FindChatsParams = {
@@ -52,10 +54,12 @@ export class ChatRepository extends BaseRepository<ChatWithMessages> {
     forkedFromMessageId,
     attachments,
     metadata,
+    chatId,
   }: CreateChatWithMessageParams): Promise<ChatWithMessages> {
     try {
       return await this.prisma.chat.create({
         data: {
+          id: chatId, // Use provided chatId or let Prisma generate
           userId,
           title,
           provider,
@@ -318,6 +322,40 @@ export class ChatRepository extends BaseRepository<ChatWithMessages> {
       });
     } catch (error) {
       throw new DatabaseError("Failed to update chat", error);
+    }
+  }
+
+  async saveMessages(chatId: string, messages: UIMessage[]) {
+    try {
+      // Prepare messages for bulk insert
+      const messageData = messages.map((msg) => {
+        const content = msg.parts
+          .filter((part) => part.type === "text")
+          .map((part) => part.text)
+          .join("");
+
+        return {
+          id: msg.id,
+          chatId,
+          role: msg.role,
+          content,
+          createdAt: msg.createdAt ? new Date(msg.createdAt) : new Date(),
+          metadata: {
+            parts: msg.parts,
+          } as Prisma.InputJsonValue,
+        };
+      });
+
+      // Bulk insert messages, ignoring duplicates
+      await this.prisma.message.createMany({
+        data: messageData,
+        skipDuplicates: true,
+      });
+
+      // Update chat's last activity
+      await this.updateLastActivity(chatId);
+    } catch (error) {
+      throw new DatabaseError("Failed to save messages", error);
     }
   }
 }

@@ -3,6 +3,7 @@ import { CHAT_LIMITS, PAGINATION_LIMITS } from "../../common/constants";
 import { attachmentInputSchema } from "../attachment/attachment.inputs";
 
 export const createChatInputSchema = z.object({
+  chatId: z.string().optional(), // Frontend-generated
   initialMessage: z
     .string()
     .trim()

@@ -10,20 +10,20 @@
     "start": "bun run dist/index.js"
   },
   "dependencies": {
-    "hono": "catalog:",
-    "better-auth": "catalog:",
-    "ai": "catalog:",
-    "@ai-sdk/google": "catalog:",
     "@ai-sdk/anthropic": "catalog:",
+    "@ai-sdk/google": "catalog:",
     "@ai-sdk/openai": "catalog:",
-    "dotenv": "catalog:",
-    "zod": "catalog:",
-    "resend": "^6.2.2",
+    "@memora/db": "workspace:*",
+    "@openrouter/ai-sdk-provider": "^1.2.3",
     "@polar-sh/better-auth": "catalog:",
     "@polar-sh/sdk": "^0.34.16",
-
-    "@memora/db": "workspace:*",
-    "@prisma/client": "catalog:"
+    "@prisma/client": "catalog:",
+    "ai": "catalog:",
+    "better-auth": "catalog:",
+    "dotenv": "catalog:",
+    "hono": "catalog:",
+    "resend": "^6.2.2",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "typescript": "catalog:",

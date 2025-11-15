@@ -1,4 +1,5 @@
 import type { Prisma } from "@prisma/client";
+import type { UIMessage } from "ai";
 import { BaseService } from "../../common/base";
 import {
   CHAT_LIMITS,
@@ -76,7 +77,7 @@ export class ChatService extends BaseService {
 
   async createChat(
     userId: string,
-    input: CreateChatInput
+    input: CreateChatInput & { chatId?: string }
   ): Promise<CreateChatResult> {
     const message = input.initialMessage?.trim() ?? "";
     const attachments = input.attachments ?? [];
@@ -145,6 +146,7 @@ export class ChatService extends BaseService {
         parentId: input.parentId,
         forkedFromMessageId: input.forkedFromMessageId,
       } as Prisma.InputJsonValue,
+      chatId: input.chatId, // Pass the pre-generated chatId if provided
     });
 
     const firstMessage = chat.messages[0];
@@ -385,5 +387,20 @@ export class ChatService extends BaseService {
       title: input.title,
       model: input.modelId,
     });
+  }
+
+  async saveChatMessages(
+    userId: string,
+    chatId: string,
+    messages: UIMessage[]
+  ) {
+    // Verify chat exists and user has permission
+    const chat = await this.getChatById(chatId, userId);
+    if (!chat) {
+      throw new ChatNotFoundError("Chat not found");
+    }
+
+    // Save messages using repository
+    return await this.repository.saveMessages(chatId, messages);
   }
 }

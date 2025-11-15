@@ -1,6 +1,11 @@
+import {
+  convertToModelMessages,
+  createUIMessageStream,
+  streamText,
+  type UIMessage,
+} from "ai";
 import { Hono } from "hono";
 import {
-  createChatInputSchema,
   enhancePromptInputSchema,
   forkChatInputSchema,
   getChatInputSchema,
@@ -9,6 +14,15 @@ import {
 import type { ChatModule } from "../modules/chat/chat.module";
 import type { AuthVariables } from "../types/auth.types";
 import type { AppContext } from "../types/hono.types";
+
+export type MyUiMessage = UIMessage<
+  unknown,
+  {
+    "new-chat-created": {
+      id: string;
+    };
+  }
+>;
 
 export function createChatRoutes(module: ChatModule) {
   const app = new Hono<{ Variables: AuthVariables }>();
@@ -21,17 +35,59 @@ export function createChatRoutes(module: ChatModule) {
 
   app.post("/", async (c: AppContext) => {
     const authUser = c.get("authUser");
-    try {
-      const body = await c.req.json();
-      const input = createChatInputSchema.parse(body);
-      const chat = await controller.createChat(authUser.id, input);
-      return c.json(chat, 201);
-    } catch (error) {
-      if (error instanceof Error) {
-        return c.json({ error: error.message }, 400);
-      }
-      return c.json({ error: "Internal server error" }, 500);
-    }
+
+    const { id, messages, body } = await c.req.json();
+    const chatId = id; // chatId from frontend
+
+    const stream = createUIMessageStream({
+      execute: async ({ writer }) => {
+        // Check if chat exists
+        let chat = await controller.getChat(authUser.id, { id: chatId });
+
+        if (!chat) {
+          // Create new chat with simple CRUD
+          chat = await controller.createChat(authUser.id, {
+            chatId, // Use frontend-generated ID
+            initialMessage: messages[0].parts[0].text,
+            modelId: body.model,
+            useWebSearch: body.useWebSearch,
+            attachments: body.attachments || [],
+          });
+
+          // Send custom data event to frontend
+          writer.write({
+            type: "data-new-chat-created",
+            data: [
+              {
+                id: chat.id,
+              },
+            ],
+          });
+        }
+
+        // Get model instance
+        const { getModelInstance } = await import("../lib/ai/provider-factory");
+        const modelInstance = getModelInstance(chat.provider, chat.model);
+
+        const result = streamText({
+          model: modelInstance,
+          messages: convertToModelMessages(messages),
+        });
+
+        // Merge AI stream into response
+        writer.merge(result.toUIMessageStream());
+      },
+      onFinish: async ({ messages: updatedMessages }) => {
+        // Save all messages to database
+        await controller.updateChatMessages(
+          authUser.id,
+          chatId,
+          updatedMessages
+        );
+      },
+    });
+
+    return stream;
   });
 
   app.get("/", async (c: AppContext) => {
