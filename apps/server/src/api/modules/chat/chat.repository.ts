@@ -358,4 +358,14 @@ export class ChatRepository extends BaseRepository<ChatWithMessages> {
       throw new DatabaseError("Failed to save messages", error);
     }
   }
+
+  async deleteChat(chatId: string, userId: string): Promise<void> {
+    try {
+      await this.prisma.chat.delete({
+        where: { id: chatId, userId },
+      });
+    } catch (error) {
+      throw new DatabaseError("Failed to delete chat", error);
+    }
+  }
 }

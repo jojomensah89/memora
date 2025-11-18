@@ -1,5 +1,5 @@
 "use client";
-import { useChat as useAIChat } from "@ai-sdk/react";
+import { useChat } from "@ai-sdk/react";
 import { useQuery } from "@tanstack/react-query";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { GlobeIcon } from "lucide-react";
@@ -44,6 +44,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ chatId }) => {
   // Fetch chat data including messages
   const { data: chatData, isLoading } = useChatData(chatId);
 
+  // const { messages, status, sendMessage } = useChat({ id: chatId });
+
   // Convert backend messages to AI SDK format
   const initialMessages = useMemo<UIMessage[]>(() => {
     if (!chatData?.messages) {
@@ -60,7 +62,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ chatId }) => {
             text: msg.content,
           },
         ],
-        createdAt: msg.createdAt,
       };
 
       return message;
@@ -80,13 +81,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ chatId }) => {
     return firstGemini?.modelId || models[0]?.modelId || "gemini-2.0-flash-exp";
   }, [models]);
 
-  const transportApi = useMemo(() => {
-    const base = process.env.NEXT_PUBLIC_SERVER_URL;
-    if (base) {
-      return `${base}/api/v1/chat`;
-    }
-    return "/api/v1/chat";
-  }, []);
+  const transportApi = useMemo(
+    () => `${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/chat`,
+    []
+  );
 
   // Show loading state
   if (isLoading) {
@@ -154,7 +152,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     }
   }, [defaultModel, model, models]);
 
-  const { messages, status, sendMessage, error } = useAIChat({
+  const { messages, status, sendMessage, error } = useChat({
     id: chatId,
     initialMessages,
     transport: new DefaultChatTransport({
@@ -163,33 +161,33 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     }),
   });
 
-  // Auto-trigger streaming if last message is from user (first navigation)
-  useEffect(() => {
-    const lastMessage = initialMessages.at(-1);
+  // // Auto-trigger streaming if last message is from user (first navigation)
+  // useEffect(() => {
+  //   const lastMessage = initialMessages.at(-1);
 
-    // If we just navigated here and last message is user, trigger AI response
-    if (
-      lastMessage?.role === "user" &&
-      messages.length === initialMessages.length &&
-      initialMessages.length > 0
-    ) {
-      const userText =
-        lastMessage.parts.find((part) => part.type === "text")?.text || "";
+  //   // If we just navigated here and last message is user, trigger AI response
+  //   if (
+  //     lastMessage?.role === "user" &&
+  //     messages.length === initialMessages.length &&
+  //     initialMessages.length > 0
+  //   ) {
+  //     const userText =
+  //       lastMessage.parts.find((part) => part.type === "text")?.text || "";
 
-      // Trigger the AI response automatically
-      sendMessage(
-        {
-          text: userText,
-        },
-        {
-          body: {
-            model: defaultModel,
-            webSearch: false,
-          },
-        }
-      );
-    }
-  }, [initialMessages, messages.length, defaultModel, sendMessage]); // Only trigger on initial mount
+  //     // Trigger the AI response automatically
+  //     sendMessage(
+  //       {
+  //         text: userText,
+  //       },
+  //       {
+  //         body: {
+  //           model: defaultModel,
+  //           webSearch: false,
+  //         },
+  //       }
+  //     );
+  //   }
+  // }, [initialMessages, messages.length, defaultModel, sendMessage]); // Only trigger on initial mount
 
   const handleSubmit = (message: PromptInputMessage) => {
     const hasText = Boolean(message.text);

@@ -39,7 +39,7 @@ export class MessageService extends BaseService {
     chatId: string;
     userId: string;
     content: string;
-    role: "user" | "assistant" | "system";
+    role: "user" | "assistant" | "system" | "tool";
   }): Promise<{ id: string }> {
     // Simplified create method for streaming
     const message = await this.repository.createMessageWithAttachments({

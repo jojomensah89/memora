@@ -19,12 +19,10 @@ export type AIProvider = "CLAUDE" | "GEMINI" | "OPENAI" | "OPENROUTER";
 const MODEL_CONFIG = {
   GEMINI: {
     prefix: "gemini",
-    defaultModel: "gemini-2.0-flash-exp",
+    defaultModel: "google/gemini-2.5-flash-preview-09-2025",
     models: [
-      "gemini-2.0-flash-exp",
-      "gemini-2.0-flash-thinking-exp-01-21",
-      "gemini-1.5-pro-latest",
-      "gemini-1.5-flash-latest",
+      "google/gemini-2.5-flash-preview-09-2025",
+      "google/gemini-2.5-flash-lite",
     ],
   },
   CLAUDE: {
@@ -143,23 +141,13 @@ export function getAllAvailableModels(): Array<{
     // Gemini models (Primary)
     {
       provider: "GEMINI",
-      modelId: "gemini-2.0-flash-exp",
-      name: "Gemini 2.0 Flash",
+      modelId: "google/gemini-2.5-flash-preview-09-2025",
+      name: "Gemini 2.5 Flash Preview",
     },
     {
       provider: "GEMINI",
-      modelId: "gemini-2.0-flash-thinking-exp-01-21",
-      name: "Gemini 2.0 Flash Thinking",
-    },
-    {
-      provider: "GEMINI",
-      modelId: "gemini-1.5-pro-latest",
-      name: "Gemini 1.5 Pro",
-    },
-    {
-      provider: "GEMINI",
-      modelId: "gemini-1.5-flash-latest",
-      name: "Gemini 1.5 Flash",
+      modelId: "google/gemini-2.5-flash-lite",
+      name: "Gemini 2.5 Flash Lite",
     },
     // Claude models
     {
@@ -206,11 +194,6 @@ export function getAllAvailableModels(): Array<{
       provider: "OPENROUTER",
       modelId: "qwen/qwen3-coder:free",
       name: "Qwen3 Coder (Free)",
-    },
-    {
-      provider: "OPENROUTER",
-      modelId: "qwen/qwen3-4b:free",
-      name: "Qwen3 4B (Free)",
     },
     {
       provider: "OPENROUTER",

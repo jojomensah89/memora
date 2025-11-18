@@ -29,15 +29,18 @@ import {
 } from "@/components/ai-elements/prompt-input";
 import { Gl } from "@/components/gl";
 import { useUser } from "@/hooks/use-user";
-import { fetchModels, type Model } from "@/lib/utils";
+
+import { fetchModels } from "@/lib/utils";
 
 const ChatWelcome = () => {
   const [prompt, setPrompt] = useState("");
   const [useWebSearch, setUseWebSearch] = useState<boolean>(false);
-  const [model, setModel] = useState<string>("gemini-2.0-flash-exp");
+  const [userSelectedModel, setUserSelectedModel] = useState<
+    string | undefined
+  >(undefined);
 
   // Generate chatId once to maintain state across re-renders
-  const chatId = useMemo(() => generateId(), []);
+  const chatId = generateId();
 
   const { user, isPending } = useUser();
 
@@ -45,40 +48,35 @@ const ChatWelcome = () => {
   const { data: modelsData } = useQuery({
     queryKey: ["models"],
     queryFn: fetchModels,
-    staleTime: Number.POSITIVE_INFINITY, // Models don't change often
+    staleTime: Number.POSITIVE_INFINITY,
   });
 
   const models = modelsData || [];
 
-  // Set default model when models are loaded
-  useMemo(() => {
-    if (models.length > 0) {
-      const firstGemini = models.find((m: Model) => m.provider === "GEMINI");
-      setModel(
-        firstGemini?.modelId || models[0]?.modelId || "gemini-2.0-flash-exp"
-      );
-    }
-  }, [models]);
+  // Pure derived state with nullish coalescing
+  const currentModel = userSelectedModel ?? modelsData?.[0]?.modelId ?? "";
+
+  // For initial testing, use the Next.js API route directly
+  const apiEndpoint = useMemo(() => "/api/chat", []);
 
   const { sendMessage, status } = useChat({
     id: chatId,
     transport: new DefaultChatTransport({
-      api: "/api/v1/chats", // POST endpoint
+      api: apiEndpoint, // POST endpoint
       prepareSendMessagesRequest({ messages }) {
         return {
           body: {
             id: chatId,
             messages,
-            model,
-            useWebSearch,
-            attachments: [],
+            model: currentModel,
+            webSearch: useWebSearch,
           },
         };
       },
     }),
     onData(message) {
       // Listen for chat-created event
-      if (message.type === "new-chat-created") {
+      if (message.type === "data-new-chat-created") {
         // Update URL without navigation
         globalThis.history.replaceState({}, "", `/chat/${chatId}`);
       }
@@ -168,9 +166,9 @@ const ChatWelcome = () => {
                   </PromptInputButton>
                   <PromptInputModelSelect
                     onValueChange={(value) => {
-                      setModel(value);
+                      setUserSelectedModel(value);
                     }}
-                    value={model}
+                    value={currentModel}
                   >
                     <PromptInputModelSelectTrigger>
                       <PromptInputModelSelectValue />

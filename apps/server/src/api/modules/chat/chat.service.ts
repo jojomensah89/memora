@@ -403,4 +403,14 @@ export class ChatService extends BaseService {
     // Save messages using repository
     return await this.repository.saveMessages(chatId, messages);
   }
+
+  async deleteChat(userId: string, chatId: string): Promise<void> {
+    // Verify ownership before deletion
+    const chat = await this.repository.findChatById(chatId, userId);
+    if (!chat) {
+      throw new ChatNotFoundError("Chat not found");
+    }
+
+    return await this.repository.deleteChat(chatId, userId);
+  }
 }

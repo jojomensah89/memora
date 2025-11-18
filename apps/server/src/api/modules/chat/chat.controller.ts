@@ -83,4 +83,12 @@ export class ChatController {
       handleError(error);
     }
   }
+
+  async deleteChat(userId: string, chatId: string) {
+    try {
+      return await this.service.deleteChat(userId, chatId);
+    } catch (error) {
+      handleError(error);
+    }
+  }
 }

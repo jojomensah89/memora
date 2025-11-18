@@ -1,10 +1,14 @@
 import {
   convertToModelMessages,
-  createUIMessageStream,
+  createIdGenerator,
   streamText,
   type UIMessage,
+  validateUIMessages,
 } from "ai";
 import { Hono } from "hono";
+import { z } from "zod";
+import { HTTP_STATUS } from "../common/constants/limits.constants";
+import { DatabaseError } from "../common/errors";
 import {
   enhancePromptInputSchema,
   forkChatInputSchema,
@@ -36,58 +40,80 @@ export function createChatRoutes(module: ChatModule) {
   app.post("/", async (c: AppContext) => {
     const authUser = c.get("authUser");
 
-    const { id, messages, body } = await c.req.json();
-    const chatId = id; // chatId from frontend
+    try {
+      const {
+        id: chatId,
+        messages,
+        model,
+        useWebSearch,
+        attachments,
+      } = await c.req.json();
 
-    const stream = createUIMessageStream({
-      execute: async ({ writer }) => {
-        // Check if chat exists
-        let chat = await controller.getChat(authUser.id, { id: chatId });
+      // Validate UI messages
+      const uiMessages = await validateUIMessages({
+        messages: messages as UIMessage[],
+      });
 
-        if (!chat) {
-          // Create new chat with simple CRUD
-          chat = await controller.createChat(authUser.id, {
-            chatId, // Use frontend-generated ID
-            initialMessage: messages[0].parts[0].text,
-            modelId: body.model,
-            useWebSearch: body.useWebSearch,
-            attachments: body.attachments || [],
-          });
+      // Check if chat exists
+      let chat = await controller.getChat(authUser.id, { id: chatId });
 
-          // Send custom data event to frontend
-          writer.write({
-            type: "data-new-chat-created",
-            data: [
-              {
-                id: chat.id,
-              },
-            ],
-          });
-        }
-
-        // Get model instance
-        const { getModelInstance } = await import("../lib/ai/provider-factory");
-        const modelInstance = getModelInstance(chat.provider, chat.model);
-
-        const result = streamText({
-          model: modelInstance,
-          messages: convertToModelMessages(messages),
-        });
-
-        // Merge AI stream into response
-        writer.merge(result.toUIMessageStream());
-      },
-      onFinish: async ({ messages: updatedMessages }) => {
-        // Save all messages to database
-        await controller.updateChatMessages(
-          authUser.id,
+      if (!chat) {
+        // Create new chat
+        chat = await controller.createChat(authUser.id, {
           chatId,
-          updatedMessages
-        );
-      },
-    });
+          initialMessage: messages[0].parts[0].text,
+          modelId: model,
+          useWebSearch,
+          attachments: attachments || [],
+        });
+      }
 
-    return stream;
+      // Get model instance
+      const { getModelInstance } = await import("../lib/ai/provider-factory");
+      const modelInstance = getModelInstance(chat.provider, chat.model);
+
+      // Use streamText with proper onFinish
+      const result = streamText({
+        model: modelInstance,
+        messages: convertToModelMessages(uiMessages),
+      });
+
+      // Return proper UI message stream response
+      return result.toUIMessageStreamResponse({
+        originalMessages: uiMessages,
+        generateMessageId: createIdGenerator({
+          prefix: "msg",
+          size: 16,
+        }),
+        onFinish: async ({ messages: updatedMessages }) => {
+          // Save all messages to database
+          await controller.updateChatMessages(
+            authUser.id,
+            chatId,
+            updatedMessages
+          );
+        },
+      });
+    } catch (error) {
+      // Detailed error logging for debugging
+      if (error instanceof Error) {
+        throw new DatabaseError("Chat creation failed", error).withContext({
+          userId: authUser.id,
+          operation: "chat-post-handler",
+          path: c.req.path,
+          method: c.req.method,
+          metadata: {
+            error: error.message,
+            stack: error.stack,
+          },
+        });
+      }
+
+      return c.json(
+        { error: "Internal server error" },
+        HTTP_STATUS.INTERNAL_SERVER_ERROR
+      );
+    }
   });
 
   app.get("/", async (c: AppContext) => {
@@ -170,13 +196,27 @@ export function createChatRoutes(module: ChatModule) {
     try {
       const { id } = getChatInputSchema.parse({ id: c.req.param("id") });
       const body = await c.req.json();
-      const { message } = { message: "string" }.parse(body);
+      const { message } = z.object({ message: z.string() }).parse(body);
       const response = await controller.generateAIResponse(
         authUser.id,
         id,
         message
       );
       return c.json(response);
+    } catch (error) {
+      if (error instanceof Error) {
+        return c.json({ error: error.message }, 400);
+      }
+      return c.json({ error: "Internal server error" }, 500);
+    }
+  });
+
+  app.delete("/:id", async (c: AppContext) => {
+    const authUser = c.get("authUser");
+    try {
+      const { id } = getChatInputSchema.parse({ id: c.req.param("id") });
+      await controller.deleteChat(authUser.id, id);
+      return c.json({ success: true }, 200);
     } catch (error) {
       if (error instanceof Error) {
         return c.json({ error: error.message }, 400);
