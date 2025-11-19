@@ -14,9 +14,9 @@ export default function Providers({
   return (
     <ThemeProvider
       attribute="class"
-      defaultTheme="system"
+      defaultTheme="dark"
       disableTransitionOnChange
-      enableSystem
+      forcedTheme="dark"
     >
       <QueryClientProvider client={queryClient}>
         <SidebarProvider defaultOpen={false}>

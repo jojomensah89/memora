@@ -4,7 +4,7 @@ import { useChat } from "@ai-sdk/react";
 import { useQuery } from "@tanstack/react-query";
 import { DefaultChatTransport, generateId } from "ai";
 import { GlobeIcon } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   PromptInput,
   PromptInputActionAddAttachments,
@@ -53,8 +53,15 @@ const ChatWelcome = () => {
 
   const models = modelsData || [];
 
+  // Auto-select first model when models load
+  useEffect(() => {
+    if (modelsData && modelsData.length > 0 && !userSelectedModel) {
+      setUserSelectedModel(modelsData[0].modelId);
+    }
+  }, [modelsData, userSelectedModel]);
+
   // Pure derived state with nullish coalescing
-  const currentModel = userSelectedModel ?? modelsData?.[0]?.modelId ?? "";
+  const currentModel = userSelectedModel ?? "";
 
   // For initial testing, use the Next.js API route directly
   const apiEndpoint = useMemo(
