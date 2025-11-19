@@ -44,8 +44,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ chatId }) => {
   // Fetch chat data including messages
   const { data: chatData, isLoading } = useChatData(chatId);
 
-  // const { messages, status, sendMessage } = useChat({ id: chatId });
-
   // Convert backend messages to AI SDK format
   const initialMessages = useMemo<UIMessage[]>(() => {
     if (!chatData?.messages) {
@@ -147,7 +145,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   const [model, setModel] = useState<string>(defaultModel);
 
   useEffect(() => {
-    if (!models.find((item) => item.modelId === model)) {
+    if (!models.some((item) => item.modelId === model)) {
       setModel(defaultModel);
     }
   }, [defaultModel, model, models]);

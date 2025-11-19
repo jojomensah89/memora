@@ -57,8 +57,10 @@ const ChatWelcome = () => {
   const currentModel = userSelectedModel ?? modelsData?.[0]?.modelId ?? "";
 
   // For initial testing, use the Next.js API route directly
-  const apiEndpoint = useMemo(() => "/api/chat", []);
-
+  const apiEndpoint = useMemo(
+    () => `${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/chat`,
+    []
+  );
   const { sendMessage, status } = useChat({
     id: chatId,
     transport: new DefaultChatTransport({
