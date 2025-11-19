@@ -1,4 +1,4 @@
-import type { AIProvider } from "@prisma/client";
+import type { AIProvider } from "@memora/db";
 import { BaseService } from "../../common/base";
 import { AIProviderError, ValidationError } from "../../common/errors";
 import { estimateTokens } from "../../common/utils/token-counter.util";

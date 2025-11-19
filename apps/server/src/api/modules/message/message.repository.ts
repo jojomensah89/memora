@@ -1,4 +1,4 @@
-import type { Prisma } from "@prisma/client";
+import type { Message, Prisma } from "@memora/db";
 import { BaseRepository } from "../../common/base";
 import { DatabaseError } from "../../common/errors";
 import type {
@@ -23,7 +23,6 @@ export class MessageRepository extends BaseRepository<Message> {
     content,
     role,
     chatId,
-    parentMessageId,
     metadata,
   }: CreateMessageData): Promise<MessageWithAttachments> {
     try {
@@ -32,7 +31,6 @@ export class MessageRepository extends BaseRepository<Message> {
           content,
           role,
           chatId,
-          parentMessageId,
           metadata,
         },
         include: {
@@ -48,7 +46,6 @@ export class MessageRepository extends BaseRepository<Message> {
     content,
     role,
     chatId,
-    parentMessageId,
     metadata,
     attachments,
   }: CreateMessageData & {
@@ -60,7 +57,6 @@ export class MessageRepository extends BaseRepository<Message> {
           content,
           role,
           chatId,
-          parentMessageId,
           metadata,
           attachments: attachments.length
             ? {

@@ -1,4 +1,4 @@
-import type { AIProvider, AttachmentKind, Chat, Prisma } from "@prisma/client";
+import type { Prisma, AttachmentKind, AIProvider, Chat } from "@memora/db";
 import type { UIMessage } from "ai";
 import { BaseRepository } from "../../common/base";
 import { AVAILABLE_MODELS } from "../../common/constants";
@@ -86,7 +86,6 @@ export class ChatRepository extends BaseRepository<ChatWithMessages> {
                 parentId,
                 forkedFromMessageId,
               } as Prisma.InputJsonValue,
-              parentMessageId: forkedFromMessageId,
               attachments: attachments.length
                 ? {
                     create: attachments.map((attachment) => ({
@@ -233,7 +232,6 @@ export class ChatRepository extends BaseRepository<ChatWithMessages> {
               content: msg.content,
               role: msg.role,
               metadata: msg.metadata,
-              parentMessageId: msg.parentMessageId,
               attachments: msg.attachments.length
                 ? {
                     create: msg.attachments.map((att) => ({

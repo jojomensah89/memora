@@ -4,12 +4,10 @@ import { createChatModule } from "../modules/chat/chat.module";
 import type { AuthVariables } from "../types/auth.types";
 import type { AppContext } from "../types/hono.types";
 import { createChatRoutes } from "./chat.routes";
-import chatShareRoutes from "./chat-share.routes";
 import contextRoutes from "./context.routes";
 import messageRoutes from "./message.routes";
 import rulesRoutes from "./rules.routes";
 import streamingRoutes from "./streaming.routes";
-import tokenUsageRoutes from "./token-usage.routes";
 
 export function setupRoutes(app: Hono<{ Variables: AuthVariables }>) {
   const protectedRoutes = new Hono<{ Variables: AuthVariables }>();
@@ -32,8 +30,6 @@ export function setupRoutes(app: Hono<{ Variables: AuthVariables }>) {
   protectedRoutes.route("/rules", rulesRoutes);
   protectedRoutes.route("/context-engine", contextRoutes);
   protectedRoutes.route("/messages", messageRoutes);
-  protectedRoutes.route("/token-usage", tokenUsageRoutes);
-  protectedRoutes.route("/chat-share", chatShareRoutes);
 
   app.route("/api/v1", protectedRoutes);
 

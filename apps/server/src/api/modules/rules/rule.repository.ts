@@ -240,4 +240,14 @@ export class RuleRepository extends BaseRepository {
       throw new DatabaseError("Failed to unlink rule from chat", error);
     }
   }
+  async validateChatOwnership(chatId: string, userId: string): Promise<boolean> {
+    try {
+      const chat = await this.prisma.chat.findFirst({
+        where: { id: chatId, userId },
+      });
+      return !!chat;
+    } catch (error) {
+      throw new DatabaseError("Failed to validate chat ownership", error);
+    }
+  }
 }

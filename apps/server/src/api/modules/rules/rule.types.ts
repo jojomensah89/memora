@@ -1,7 +1,7 @@
-import type { Rule, RuleTag } from "@prisma/client";
+import type { Rule, RuleTag } from "@memora/db";
 
 // Re-export Prisma types
-export type { Rule } from "@prisma/client";
+export type { Rule } from "@memora/db";
 
 /**
  * Rules Module - Types

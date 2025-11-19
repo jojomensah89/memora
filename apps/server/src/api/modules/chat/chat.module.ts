@@ -1,6 +1,5 @@
 import { ChatController } from "./chat.controller";
 import type { EnhancePromptInput } from "./chat.inputs";
-import { ChatRepository } from "./chat.repository";
 import { ChatService } from "./chat.service";
 
 type PromptEnhancer = {
@@ -20,7 +19,6 @@ export type ChatModuleDependencies = {
 };
 
 export type ChatModule = {
-  repository: ChatRepository;
   service: ChatService;
   controller: ChatController;
 };
@@ -28,13 +26,11 @@ export type ChatModule = {
 export function createChatModule(
   deps: ChatModuleDependencies = {}
 ): ChatModule {
-  const repository = new ChatRepository();
   const enhancer = deps.enhancer ?? createPassThroughEnhancer();
-  const service = new ChatService(repository, enhancer);
+  const service = new ChatService(enhancer);
   const controller = new ChatController(service);
 
   return {
-    repository,
     service,
     controller,
   };

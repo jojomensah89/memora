@@ -15,7 +15,7 @@ import type {
   CreateContextItemInput,
   UploadFileInput,
 } from "./context-item.inputs";
-import type { ContextItemRepository } from "./context-item.repository";
+import { ContextItemRepository } from "./context-item.repository";
 import type {
   ContextItemWithTags,
   ContextListResult,
@@ -26,11 +26,10 @@ import type {
  * Contains business logic for context management
  */
 export class ContextItemService extends BaseService {
-  private readonly repository: ContextItemRepository;
+  private readonly repository: ContextItemRepository = new ContextItemRepository();
 
-  constructor(repository: ContextItemRepository) {
+  constructor() {
     super();
-    this.repository = repository;
   }
 
   /**
@@ -297,11 +296,12 @@ export class ContextItemService extends BaseService {
     }
 
     // Verify chat ownership
-    const chat = await this.prisma.chat.findFirst({
-      where: { id: chatId, userId },
-    });
+    const hasOwnership = await this.repository.validateChatOwnership(
+      chatId,
+      userId
+    );
 
-    if (!chat) {
+    if (!hasOwnership) {
       throw new ValidationError("Chat not found or access denied");
     }
 

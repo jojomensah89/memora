@@ -84,8 +84,6 @@ app.get("/", (c) =>
         rules: "/api/v1/rules",
         context: "/api/v1/context-engine",
         streaming: "/api/v1/chat",
-        tokenUsage: "/api/v1/token-usage",
-        chatShare: "/api/v1/chat-share",
       },
     },
   })

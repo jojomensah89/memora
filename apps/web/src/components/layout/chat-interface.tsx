@@ -2,14 +2,19 @@
 import { useChat } from "@ai-sdk/react";
 import { useQuery } from "@tanstack/react-query";
 import { DefaultChatTransport, type UIMessage } from "ai";
-import { GlobeIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Conversation,
   ConversationContent,
   ConversationScrollButton,
 } from "@/components/ai-elements/conversation";
-import { Message, MessageContent } from "@/components/ai-elements/message";
+import {
+  Message,
+  MessageContent,
+  MessageResponse,
+  MessageActions,
+  MessageAction,
+} from '@/components/ai-elements/message';
 import {
   PromptInput,
   PromptInputActionAddAttachments,
@@ -21,6 +26,7 @@ import {
   PromptInputBody,
   PromptInputButton,
   PromptInputFooter,
+  PromptInputHeader,
   type PromptInputMessage,
   PromptInputModelSelect,
   PromptInputModelSelectContent,
@@ -32,13 +38,33 @@ import {
   PromptInputTextarea,
   PromptInputTools,
 } from "@/components/ai-elements/prompt-input";
-import { Response } from "@/components/ai-elements/response";
 import { useChat as useChatData } from "@/hooks/use-chat";
 import { fetchModels, type Model } from "@/lib/utils";
-
+import z from "zod";
+import { CopyIcon, GlobeIcon, RefreshCcwIcon } from 'lucide-react';
+import {
+  Source,
+  Sources,
+  SourcesContent,
+  SourcesTrigger,
+} from '@/components/ai-elements/sources';
+import {
+  Reasoning,
+  ReasoningContent,
+  ReasoningTrigger,
+} from '@/components/ai-elements/reasoning';
+import { Loader } from '@/components/ai-elements/loader';
 type ChatInterfaceProps = {
   chatId: string;
 };
+
+const messageMetadataSchema = z.object({
+  createdAt: z.number().optional(),
+  totalTokens:  z.number().optional(),
+});
+
+type MessageMetadata = z.infer<typeof messageMetadataSchema>;
+export type MyUIMessage = UIMessage<MessageMetadata>;
 
 const ChatInterface: React.FC<ChatInterfaceProps> = ({ chatId }) => {
   // Fetch chat data including messages
@@ -98,24 +124,24 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ chatId }) => {
     );
   }
 
-  if (!chatData) {
-    return (
-      <div className="relative min-h-screen bg-background">
-        <div className="flex flex-1 items-center justify-center">
-          <div className="text-center">
-            <p className="text-muted-foreground">Unable to load chat.</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // if (!chatData) {
+  //   return (
+  //     <div className="relative min-h-screen bg-background">
+  //       <div className="flex flex-1 items-center justify-center">
+  //         <div className="text-center">
+  //           <p className="text-muted-foreground">Unable to load chat.</p>
+  //         </div>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   return (
     <ChatPanel
       chatId={chatId}
       defaultModel={defaultModel}
       initialMessages={initialMessages}
-      key={`${chatId}-${chatData.updatedAt ?? "initial"}`}
+      key={`${chatId}-${chatData?.updatedAt ?? "initial"}`}
       models={models}
       transportApi={transportApi}
     />
@@ -140,7 +166,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   transportApi,
 }) => {
   const [text, setText] = useState<string>("");
-  const [useWebSearch, setUseWebSearch] = useState<boolean>(false);
+  const [webSearch, setWebSearch] = useState<boolean>(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [model, setModel] = useState<string>(defaultModel);
 
@@ -150,42 +176,15 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     }
   }, [defaultModel, model, models]);
 
-  const { messages, status, sendMessage, error } = useChat({
+  const { messages, status, sendMessage, error, regenerate } = useChat<MyUIMessage>({
     id: chatId,
-    initialMessages,
     transport: new DefaultChatTransport({
       api: transportApi,
+      
       credentials: "include",
     }),
   });
 
-  // // Auto-trigger streaming if last message is from user (first navigation)
-  // useEffect(() => {
-  //   const lastMessage = initialMessages.at(-1);
-
-  //   // If we just navigated here and last message is user, trigger AI response
-  //   if (
-  //     lastMessage?.role === "user" &&
-  //     messages.length === initialMessages.length &&
-  //     initialMessages.length > 0
-  //   ) {
-  //     const userText =
-  //       lastMessage.parts.find((part) => part.type === "text")?.text || "";
-
-  //     // Trigger the AI response automatically
-  //     sendMessage(
-  //       {
-  //         text: userText,
-  //       },
-  //       {
-  //         body: {
-  //           model: defaultModel,
-  //           webSearch: false,
-  //         },
-  //       }
-  //     );
-  //   }
-  // }, [initialMessages, messages.length, defaultModel, sendMessage]); // Only trigger on initial mount
 
   const handleSubmit = (message: PromptInputMessage) => {
     const hasText = Boolean(message.text);
@@ -203,7 +202,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       {
         body: {
           model,
-          webSearch: useWebSearch,
+          webSearch: webSearch,
         },
       }
     );
@@ -217,22 +216,89 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
           <Conversation>
             <ConversationContent>
               {messages.map((message) => (
-                <Message from={message.role} key={message.id}>
-                  <MessageContent>
-                    {message.parts.map((part, i) => {
-                      switch (part.type) {
-                        case "text":
-                          return (
-                            <Response key={`${message.id}-${i}`}>
-                              {part.text}
-                            </Response>
-                          );
-                        default:
-                          return null;
+                <div key={message.id} className="mb-8">
+
+  {message.role === 'assistant' && message.parts.filter((part) => part.type === 'source-url').length > 0 && (
+                  <Sources>
+                    <SourcesTrigger
+                      count={
+                        message.parts.filter(
+                          (part) => part.type === 'source-url',
+                        ).length
                       }
+                    />
+                    {message.parts.filter((part) => part.type === 'source-url').map((part, i) => (
+                      <SourcesContent key={`${message.id}-${i}`}>
+                        <Source
+                          key={`${message.id}-${i}`}
+                          href={part.url}
+                          title={part.url}
+                        />
+                      </SourcesContent>
+                    ))}
+                  </Sources>
+                )}
+                    {message.parts.map((part, i) => {
+                   switch (part.type) {
+                    case 'text':
+                      return (
+                        <Message key={`${message.id}-${i}`} from={message.role}>
+                          <MessageContent>
+                            <MessageResponse>
+                              {part.text}
+                            </MessageResponse>
+                          </MessageContent>
+                          {message.role === 'assistant' && i === messages.length - 1 && (
+                            <MessageActions>
+                              <MessageAction
+                                onClick={() => regenerate()}
+                                label="Retry"
+                              >
+                                <RefreshCcwIcon className="size-3" />
+                              </MessageAction>
+                              <MessageAction
+                                onClick={() =>
+                                  navigator.clipboard.writeText(part.text)
+                                }
+                                label="Copy"
+                              >
+                                <CopyIcon className="size-3" />
+                              </MessageAction>
+                            </MessageActions>
+                          )}
+                        </Message>
+                      );
+                    case 'reasoning':
+                      return (
+                        <Reasoning
+                          key={`${message.id}-${i}`}
+                          className="w-full"
+                          isStreaming={status === 'streaming' && i === message.parts.length - 1 && message.id === messages.at(-1)?.id}
+                        >
+                          <ReasoningTrigger />
+                          <ReasoningContent>{part.text}</ReasoningContent>
+                        </Reasoning>
+                      );
+                    default:
+                      return null;
+                  }
                     })}
-                  </MessageContent>
-                </Message>
+                    {message.metadata?.totalTokens && (
+                      <div className="mt-2 text-xs text-muted-foreground">
+                        {message.metadata.totalTokens} tokens
+                      </div>
+                    )}
+                    {message.metadata?.createdAt && (
+                      <div className="mt-2 text-xs text-muted-foreground">
+                        {new Date(message.metadata.createdAt).toLocaleString([],{
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          hour12: true,
+                        })}
+                      </div>
+                    )}
+               
+                </div>
               ))}
 
               {/* Show error message if streaming fails */}
@@ -258,6 +324,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                   </MessageContent>
                 </Message>
               )}
+                          {status === 'submitted' && <Loader />}
+
             </ConversationContent>
             <ConversationScrollButton />
           </Conversation>
@@ -268,10 +336,13 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
             multiple
             onSubmit={handleSubmit}
           >
-            <PromptInputBody>
-              <PromptInputAttachments>
+            <PromptInputHeader>
+           <PromptInputAttachments>
                 {(attachment) => <PromptInputAttachment data={attachment} />}
               </PromptInputAttachments>
+          </PromptInputHeader>
+            <PromptInputBody>
+            
               <PromptInputTextarea
                 onChange={(e) => setText(e.target.value)}
                 ref={textareaRef}
@@ -291,8 +362,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                   textareaRef={textareaRef}
                 />
                 <PromptInputButton
-                  onClick={() => setUseWebSearch(!useWebSearch)}
-                  variant={useWebSearch ? "default" : "ghost"}
+                  onClick={() => setWebSearch(!webSearch)}
+                  variant={webSearch ? "default" : "ghost"}
                 >
                   <GlobeIcon size={16} />
                   <span>Search</span>

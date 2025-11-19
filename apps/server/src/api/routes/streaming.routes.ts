@@ -4,7 +4,7 @@
  * No validation, persistence, or context/rules.
  */
 
-import { convertToModelMessages, streamText } from "ai";
+import { convertToModelMessages, createUIMessageStream, createUIMessageStreamResponse, streamText, tool, type UIMessage } from "ai";
 
 import { Hono } from "hono";
 import {
@@ -14,29 +14,143 @@ import {
 } from "../lib/ai/provider-factory";
 import type { AuthVariables } from "../types/auth.types";
 import type { AppContext } from "../types/hono.types";
+import z from "zod";
+
+import { ChatService } from "../modules/chat/chat.service";
 
 const app = new Hono<{ Variables: AuthVariables }>();
 
-app.post("/", async (c: AppContext) => {
-  const body = await c.req.json();
+const messageMetadataSchema = z.object({
+  createdAt: z.number().optional(),
+  totalTokens: z.number().optional(),
+}
 
-  const uiMessages = body.messages ?? [];
-  const requestedModel = body.model;
+
+);
+
+type MessageMetadata = z.infer<typeof messageMetadataSchema>;
+export type MyUIMessage = UIMessage<MessageMetadata>;
+type NewUiMessage = UIMessage<unknown,{
+  "new-chat-created":{
+    id:string
+  }
+}>
+
+app.post("/", async (c: AppContext) => {
+  try {
+    const { messages, model}: { messages: MyUIMessage[]; model: string, webSearch: boolean } =
+      await c.req.json();
+
+    const requestedModel = model;
+    const modelId = requestedModel ?? getDefaultModel("GEMINI");
+
+    const provider = getProviderFromModel(modelId);
+    const modelInstance = getModelInstance(provider, modelId);
+
+    const result = streamText({
+      model: modelInstance,
+      messages: convertToModelMessages(messages),
+      // providerOptions: {
+      //   openai: {
+      //     reasoningSummary: "auto",
+      //     reasoningEffort: "low"
+      //   },google:{
+      //     reasoningSummary: "auto",
+      //     reasoningEffort: "low"
+      //   } 
+      // }
+    });
+    return result.toUIMessageStreamResponse({
+      sendReasoning:true,
+      sendSources:true,
+      messageMetadata: ({ part})=>{
+        if(part.type === "start"){
+          return {
+            createdAt: Date.now(),
+          };
+        }
+        if(part.type === "finish"){
+          console.log(part.totalUsage);
+          return {
+            createdAt: Date.now(),
+            totalTokens: part.totalUsage.totalTokens,
+          };
+        }
+      }
+    });
+  } catch (error) {
+    console.error("Error streaming text:", error);
+    return c.json({ error: "Internal server error" }, 500);
+  }
+});
+
+
+app.post("/extreme", async (c: AppContext) => {
+  const {
+    messages,
+    model,
+    id: chatId,
+    webSearch,
+  }: {
+    messages: NewUiMessage[];
+    model: string;
+    webSearch: boolean;
+    id: string;
+  } = await c.req.json();
+  const authUser = c.get("authUser");
+  const requestedModel = model;
   const modelId = requestedModel ?? getDefaultModel("GEMINI");
 
   const provider = getProviderFromModel(modelId);
   const modelInstance = getModelInstance(provider, modelId);
 
-  const result = streamText({
-    model: modelInstance,
-    messages: convertToModelMessages(uiMessages),
-    // temperature: 0.7,
-  });
-  return result.toUIMessageStreamResponse();
+  const chatService = new ChatService();
 
-  // return result.toUIMessageStreamResponse({
-  //   originalMessages: uiMessages,
-  // });
+  const stream = createUIMessageStream({
+    execute: async ({ writer }) => {
+      try {
+        // Check if chat exists
+        await chatService.getChatById(chatId, authUser.id);
+      } catch (error) {
+        // Chat doesn't exist, create it
+        const initialMessage = messages[0]?.parts.find(p => p.type === 'text')?.text || "";
+        
+        await chatService.createChat(authUser.id, {
+          chatId,
+          modelId,
+          initialMessage,
+          useWebSearch:webSearch,
+          attachments:[]
+        });
+
+        writer.write({
+          type: "data-new-chat-created",
+          data: {
+             id: chatId,
+          },
+        });
+      }
+
+      const result = streamText({
+        model: modelInstance,
+        messages: convertToModelMessages(messages),
+      });
+
+      // forward the initial result to the client without the finish event:
+      writer.merge(result.toUIMessageStream());
+    },
+    onFinish: async ({ messages: updatedMessages }) => {
+      try {
+        // Save the updated messages to the database
+        await chatService.saveChatMessages(authUser.id, chatId, updatedMessages as unknown as MyUIMessage[]);
+      } catch (error) {
+        console.error("Failed to save chat messages:", error);
+      }
+    },
+  });
+
+
+  return createUIMessageStreamResponse({ stream });
 });
 
 app.get("/models", async (c: AppContext) => {

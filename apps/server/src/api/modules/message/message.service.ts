@@ -1,4 +1,4 @@
-import type { Prisma } from "@prisma/client";
+import type { Prisma } from "@memora/db";
 import { BaseService } from "../../common/base";
 import { CHAT_LIMITS } from "../../common/constants";
 import {
@@ -19,7 +19,7 @@ import type {
   GetMessagesByChatInput,
   UpdateMessageInput,
 } from "./message.inputs";
-import type { MessageRepository } from "./message.repository";
+import { MessageRepository } from "./message.repository";
 import type {
   CreateMessageResult,
   MessageListItem,
@@ -28,11 +28,10 @@ import type {
 } from "./message.types";
 
 export class MessageService extends BaseService {
-  private readonly repository: MessageRepository;
+  private readonly repository: MessageRepository = new MessageRepository();
 
-  constructor(repository: MessageRepository) {
+  constructor() {
     super();
-    this.repository = repository;
   }
 
   async create(input: {
@@ -203,19 +202,13 @@ export class MessageService extends BaseService {
     chatId: string,
     userId: string
   ): Promise<void> {
-    try {
-      const chat = await this.prisma.chat.findFirst({
-        where: { id: chatId, userId },
-      });
+    const hasOwnership = await this.repository.validateChatOwnership(
+      chatId,
+      userId
+    );
 
-      if (!chat) {
-        throw new ChatNotFoundError("Chat not found or access denied");
-      }
-    } catch (error) {
-      if (error instanceof ChatNotFoundError) {
-        throw error;
-      }
-      throw new ValidationError("Failed to validate chat ownership");
+    if (!hasOwnership) {
+      throw new ChatNotFoundError("Chat not found or access denied");
     }
   }
 

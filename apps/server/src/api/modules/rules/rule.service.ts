@@ -2,7 +2,7 @@ import { BaseService } from "../../common/base";
 import { RULE_LIMITS } from "../../common/constants";
 import { RuleNotFoundError, ValidationError } from "../../common/errors";
 import type { CreateRuleInput } from "./rule.inputs";
-import type { RuleRepository } from "./rule.repository";
+import { RuleRepository } from "./rule.repository";
 import type { RuleListResult, RuleWithTags } from "./rule.types";
 
 /**
@@ -10,28 +10,24 @@ import type { RuleListResult, RuleWithTags } from "./rule.types";
  * Contains business logic for rules management
  */
 export class RuleService extends BaseService {
-  private readonly repository: RuleRepository;
+  private readonly repository: RuleRepository = new RuleRepository();
 
-  constructor(repository: RuleRepository) {
+  constructor() {
     super();
-    this.repository = repository;
   }
 
   /**
    * Get all rules for user
    */
   async getAll(userId: string): Promise<RuleListResult> {
-    const logger = this.getLogger({ userId, action: "getAll" });
     const perf = this.getPerfLogger("rules.getAll", { userId });
 
-    logger("Fetching all rules for user");
     const [rules, stats] = await Promise.all([
       this.repository.findAllByUser(userId),
       this.repository.getStats(userId),
     ]);
 
     perf.end();
-    logger(`Found ${rules.length} rules for user`);
 
     return { rules, stats };
   }
@@ -133,14 +129,12 @@ export class RuleService extends BaseService {
   }
 
   async toggleActive(userId: string, id: string) {
-    const logger = this.getLogger({ userId, action: "toggleActive" });
     const perf = this.getPerfLogger("rules.toggleActive", {
       userId,
       ruleId: id,
     });
 
     try {
-      logger("Toggling rule active status", `ruleId=${id}`);
 
       const rule = await this.repository.findById(id, userId);
       if (!rule) {
@@ -149,11 +143,6 @@ export class RuleService extends BaseService {
 
       const result = await this.repository.toggleActive(id, userId);
       perf.end();
-      logger(
-        "Rule active status toggled",
-        `ruleId=${id}, isActive=${result.isActive}`
-      );
-
       return result;
     } catch (error) {
       this.getErrorLogger({ userId, action: "toggleActive", ruleId: id })(
@@ -171,11 +160,12 @@ export class RuleService extends BaseService {
     }
 
     // Verify chat ownership
-    const chat = await this.prisma.chat.findFirst({
-      where: { id: chatId, userId },
-    });
+    const hasOwnership = await this.repository.validateChatOwnership(
+      chatId,
+      userId
+    );
 
-    if (!chat) {
+    if (!hasOwnership) {
       throw new ValidationError("Chat not found or access denied");
     }
 

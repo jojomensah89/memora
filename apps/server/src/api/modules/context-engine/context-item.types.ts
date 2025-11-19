@@ -1,7 +1,7 @@
-import type { ContextItem, ContextTag, ContextType } from "@prisma/client";
+import type { ContextItem, ContextTag, ContextType } from "@memora/db";
 
 // Re-export Prisma types
-export type { ContextItem } from "@prisma/client";
+export type { ContextItem } from "@memora/db";
 
 /**
  * Context Engine - Types

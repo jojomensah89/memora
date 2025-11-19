@@ -4,7 +4,7 @@ import type {
   AttachmentKind,
   Chat,
   Message,
-} from "@prisma/client";
+} from "@memora/db";
 import type { ModelConfig } from "../../common/constants/models.constants";
 
 export type ChatMessageWithAttachments = Message & {

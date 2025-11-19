@@ -34,7 +34,7 @@ import { fetchModels } from "@/lib/utils";
 
 const ChatWelcome = () => {
   const [prompt, setPrompt] = useState("");
-  const [useWebSearch, setUseWebSearch] = useState<boolean>(false);
+  const [webSearch, setUseWebSearch] = useState<boolean>(false);
   const [userSelectedModel, setUserSelectedModel] = useState<
     string | undefined
   >(undefined);
@@ -72,13 +72,14 @@ const ChatWelcome = () => {
     id: chatId,
     transport: new DefaultChatTransport({
       api: apiEndpoint, // POST endpoint
-      prepareSendMessagesRequest({ messages }) {
+      prepareSendMessagesRequest({ messages, body }) {
         return {
           body: {
             id: chatId,
             messages,
             model: currentModel,
-            webSearch: useWebSearch,
+            webSearch,
+            ...body
           },
         };
       },
@@ -167,8 +168,8 @@ const ChatWelcome = () => {
                   </PromptInputActionMenu>
                   <PromptInputSpeechButton />
                   <PromptInputButton
-                    onClick={() => setUseWebSearch(!useWebSearch)}
-                    variant={useWebSearch ? "default" : "ghost"}
+                    onClick={() => setUseWebSearch(!webSearch)}
+                    variant={webSearch ? "default" : "ghost"}
                   >
                     <GlobeIcon size={16} />
                     <span>Search</span>
