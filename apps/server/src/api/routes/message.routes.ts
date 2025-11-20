@@ -1,8 +1,7 @@
-import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
+import { Hono } from "hono";
 import { z } from "zod";
 import { PAGINATION_LIMITS } from "../common/constants/limits.constants";
-import type { AuthVariables } from "../types/auth.types";
 import {
   createMessage,
   deleteMessage,
@@ -15,19 +14,16 @@ import {
   createMessageInputSchema,
   updateMessageInputSchema,
 } from "../modules/message/message.inputs";
+import type { AuthVariables } from "../types/auth.types";
 
 const app = new Hono<{ Variables: AuthVariables }>();
 
-app.post(
-  "/",
-  zValidator("json", createMessageInputSchema),
-  async (c) => {
-    const user = c.get("authUser");
-    const input = c.req.valid("json");
-    const result = await createMessage(user.id, input);
-    return c.json(result);
-  }
-);
+app.post("/", zValidator("json", createMessageInputSchema), async (c) => {
+  const user = c.get("authUser");
+  const input = c.req.valid("json");
+  const result = await createMessage(user.id, input);
+  return c.json(result);
+});
 
 app.get(
   "/chat/:chatId",
@@ -40,7 +36,12 @@ app.get(
   zValidator(
     "query",
     z.object({
-      limit: z.string().optional().transform((val) => val ? parseInt(val, 10) : PAGINATION_LIMITS.DEFAULT_LIMIT),
+      limit: z
+        .string()
+        .optional()
+        .transform((val) =>
+          val ? Number.parseInt(val, 10) : PAGINATION_LIMITS.DEFAULT_LIMIT
+        ),
       cursor: z.string().optional(),
     })
   ),

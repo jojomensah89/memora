@@ -93,73 +93,99 @@ app.post("/", async (c: AppContext) => {
 });
 
 app.post("/extreme", async (c: AppContext) => {
-  const {
-    messages,
-    model,
-    id: chatId,
-    webSearch,
-  }: {
-    messages: NewUiMessage[];
-    model: string;
-    webSearch: boolean;
-    id: string;
-  } = await c.req.json();
-  const authUser = c.get("authUser");
-  const requestedModel = model;
-  const modelId = requestedModel ?? getDefaultModel("GEMINI");
+  try {
+    const {
+      messages,
+      model,
+      id: chatId,
+      webSearch,
+    }: {
+      messages: NewUiMessage[];
+      model: string;
+      webSearch: boolean;
+      id: string;
+    } = await c.req.json();
+    const authUser = c.get("authUser");
+    const requestedModel = model;
+    const modelId = requestedModel ?? getDefaultModel("GEMINI");
 
-  const provider = getProviderFromModel(modelId);
-  const modelInstance = getModelInstance(provider, modelId);
+    const provider = getProviderFromModel(modelId);
+    const modelInstance = getModelInstance(provider, modelId);
 
-  const stream = createUIMessageStream({
-    execute: async ({ writer }) => {
-      try {
-        // Check if chat exists
-        await ChatService.getChatById(chatId, authUser.id);
-      } catch (error) {
-        // Chat doesn't exist, create it
-        const initialMessage =
-          messages[0]?.parts.find((p) => p.type === "text")?.text || "";
+    const stream = createUIMessageStream({
+      execute: async ({ writer }) => {
+        try {
+          // Check if chat exists
+          await ChatService.getChatById(chatId, authUser.id);
+        } catch (error) {
+          // Chat doesn't exist, create it
+          const initialMessage =
+            messages[0]?.parts.find((p) => p.type === "text")?.text || "";
 
-        await ChatService.createChat(authUser.id, {
-          chatId,
-          modelId,
-          initialMessage,
-          useWebSearch: webSearch,
-          attachments: [],
+          await ChatService.createChat(authUser.id, {
+            chatId,
+            modelId,
+            initialMessage,
+            useWebSearch: webSearch,
+            attachments: [],
+          });
+
+          writer.write({
+            type: "data-new-chat-created",
+            data: {
+              id: chatId,
+            },
+          });
+        }
+
+        const result = streamText({
+          model: modelInstance,
+          messages: convertToModelMessages(messages),
         });
 
-        writer.write({
-          type: "data-new-chat-created",
-          data: {
-            id: chatId,
-          },
-        });
-      }
+        // forward the initial result to the client without the finish event:
+        writer.merge(result.toUIMessageStream());
+      },
+      onFinish: async ({ messages: updatedMessages }) => {
+        try {
+          // Save the updated messages to the database
+          await ChatService.saveChatMessages(
+            authUser.id,
+            chatId,
+            updatedMessages as unknown as MyUIMessage[]
+          );
+        } catch (error) {
+          // Log the error with full context for debugging
+          const { logger } = await import("../common/logger");
 
-      const result = streamText({
-        model: modelInstance,
-        messages: convertToModelMessages(messages),
-      });
+          logger.error("Failed to save chat messages", {
+            error: error instanceof Error ? error.message : String(error),
+            chatId,
+            userId: authUser.id,
+            messageCount: updatedMessages.length,
+            ...(error instanceof Error && { stack: error.stack }),
+            ...(process.env.NODE_ENV === "development" && {
+              messages: updatedMessages.map((m: any) => ({
+                id: m.id,
+                role: m.role,
+              })),
+            }),
+          });
 
-      // forward the initial result to the client without the finish event:
-      writer.merge(result.toUIMessageStream());
-    },
-    onFinish: async ({ messages: updatedMessages }) => {
-      try {
-        // Save the updated messages to the database
-        await ChatService.saveChatMessages(
-          authUser.id,
-          chatId,
-          updatedMessages as unknown as MyUIMessage[]
-        );
-      } catch (error) {
-        console.error("Failed to save chat messages:", error);
-      }
-    },
-  });
+          // Don't throw - streaming already completed, just log the error
+          // The client has already received the AI response successfully
+        }
+      },
+    });
 
-  return createUIMessageStreamResponse({ stream });
+    return createUIMessageStreamResponse({ stream });
+  } catch (error) {
+    // handleError will throw an AppError which will be caught by Hono's error middleware
+    const { handleError } = await import("../common/errors");
+    handleError(error);
+    // This line is never reached, but TypeScript needs a return
+    throw error;
+  }
 });
 
 app.get("/models", async (c: AppContext) => {

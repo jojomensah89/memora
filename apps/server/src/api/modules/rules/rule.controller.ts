@@ -20,7 +20,10 @@ export async function getRules(userId: string) {
 /**
  * Get rules for specific chat
  */
-export async function getChatRules(userId: string, input: GetRulesForChatInput) {
+export async function getChatRules(
+  userId: string,
+  input: GetRulesForChatInput
+) {
   try {
     return await RuleService.getChatRules(input.chatId, userId);
   } catch (error) {
@@ -103,7 +106,11 @@ export async function linkRule(userId: string, ruleId: string, chatId: string) {
 /**
  * Unlink rule from a chat
  */
-export async function unlinkRule(userId: string, ruleId: string, chatId: string) {
+export async function unlinkRule(
+  userId: string,
+  ruleId: string,
+  chatId: string
+) {
   try {
     await RuleService.unlinkRule(userId, ruleId, chatId);
     return { success: true };

@@ -6,7 +6,9 @@ import type { ContextItemWithTags, ContextStats } from "./context-item.types";
 /**
  * Get all context items for a user
  */
-export async function findContextItemsByUser(userId: string): Promise<ContextItemWithTags[]> {
+export async function findContextItemsByUser(
+  userId: string
+): Promise<ContextItemWithTags[]> {
   try {
     return (await prisma.contextItem.findMany({
       where: { userId },
@@ -204,7 +206,10 @@ export async function updateContextItem(
 /**
  * Delete a context item
  */
-export async function deleteContextItem(id: string, userId: string): Promise<void> {
+export async function deleteContextItem(
+  id: string,
+  userId: string
+): Promise<void> {
   try {
     await prisma.contextItem.deleteMany({
       where: { id, userId },

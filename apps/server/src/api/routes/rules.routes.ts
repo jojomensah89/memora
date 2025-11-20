@@ -1,6 +1,6 @@
+import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { z } from "zod";
-import type { AuthVariables } from "../types/auth.types";
 import {
   createRule,
   deleteRule,
@@ -12,19 +12,16 @@ import {
   unlinkRule,
   updateRule,
 } from "../modules/rules/rule.controller";
-import { zValidator } from "@hono/zod-validator";
+import type { AuthVariables } from "../types/auth.types";
 
 const app = new Hono<{ Variables: AuthVariables }>();
 
 // GET /api/rules - List rules
-app.get(
-  "/",
-  async (c) => {
-    const user = c.get("authUser");
-    const result = await getRules(user.id);
-    return c.json(result);
-  }
-);
+app.get("/", async (c) => {
+  const user = c.get("authUser");
+  const result = await getRules(user.id);
+  return c.json(result);
+});
 
 // GET /api/rules/chat/:chatId - List rules for chat
 app.get(

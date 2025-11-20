@@ -57,7 +57,11 @@ export async function forkChat(userId: string, input: ForkChatInput) {
   }
 }
 
-export async function generateAIResponse(userId: string, chatId: string, message: string) {
+export async function generateAIResponse(
+  userId: string,
+  chatId: string,
+  message: string
+) {
   try {
     return await ChatService.generateAIResponse(userId, chatId, message);
   } catch (error) {

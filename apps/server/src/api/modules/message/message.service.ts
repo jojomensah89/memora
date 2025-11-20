@@ -58,8 +58,7 @@ export async function createMessage(
   userId: string,
   input: CreateMessageInput
 ): Promise<CreateMessageResult> {
-  const { content, role, chatId, attachments, metadata } =
-    input;
+  const { content, role, chatId, attachments, metadata } = input;
 
   // Validate content length
   validateLength(content, "Message", 1, CHAT_LIMITS.MAX_MESSAGE_LENGTH);
@@ -140,10 +139,7 @@ export async function updateMessage(
   input: UpdateMessageInput
 ): Promise<void> {
   // Validate message exists and belongs to user
-  const existingMessage = await getMessageByIdRepo(
-    messageId,
-    userId
-  );
+  const existingMessage = await getMessageByIdRepo(messageId, userId);
   if (!existingMessage) {
     throw new NotFoundError("Message not found");
   }
@@ -152,12 +148,7 @@ export async function updateMessage(
 
   // Validate content if provided
   if (input.content) {
-    validateLength(
-      input.content,
-      "Message",
-      1,
-      CHAT_LIMITS.MAX_MESSAGE_LENGTH
-    );
+    validateLength(input.content, "Message", 1, CHAT_LIMITS.MAX_MESSAGE_LENGTH);
   }
 
   await updateMessageRepo(messageId, userId, {
@@ -166,12 +157,12 @@ export async function updateMessage(
   });
 }
 
-export async function deleteMessage(userId: string, messageId: string): Promise<void> {
+export async function deleteMessage(
+  userId: string,
+  messageId: string
+): Promise<void> {
   // Validate message exists and belongs to user
-  const existingMessage = await getMessageByIdRepo(
-    messageId,
-    userId
-  );
+  const existingMessage = await getMessageByIdRepo(messageId, userId);
   if (!existingMessage) {
     throw new NotFoundError("Message not found");
   }
@@ -187,10 +178,7 @@ export async function getMessageStatistics(
 ): Promise<MessageStatistics> {
   await validateChatOwnership(chatId, userId);
 
-  const stats = await getMessageStatisticsForChat(
-    chatId,
-    userId
-  );
+  const stats = await getMessageStatisticsForChat(chatId, userId);
   const averageTokensPerMessage =
     stats.totalMessages > 0
       ? Math.round(stats.totalTokens / stats.totalMessages)
@@ -206,10 +194,7 @@ async function validateChatOwnership(
   chatId: string,
   userId: string
 ): Promise<void> {
-  const hasOwnership = await validateChatOwnershipRepo(
-    chatId,
-    userId
-  );
+  const hasOwnership = await validateChatOwnershipRepo(chatId, userId);
 
   if (!hasOwnership) {
     throw new ChatNotFoundError("Chat not found or access denied");

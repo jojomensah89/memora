@@ -1,7 +1,10 @@
 import { RULE_LIMITS } from "../../common/constants";
 import { RuleNotFoundError, ValidationError } from "../../common/errors";
 import { errorLogger, perfLogger } from "../../common/logger";
-import { validateLength, validateRequired } from "../../common/utils/validation.util";
+import {
+  validateLength,
+  validateRequired,
+} from "../../common/utils/validation.util";
 import type { CreateRuleInput } from "./rule.inputs";
 import * as RuleRepository from "./rule.repository";
 import type { RuleListResult, RuleWithTags } from "./rule.types";
@@ -38,7 +41,10 @@ export async function getChatRules(
 /**
  * Get single rule by ID
  */
-export async function getRule(id: string, userId: string): Promise<RuleWithTags> {
+export async function getRule(
+  id: string,
+  userId: string
+): Promise<RuleWithTags> {
   validateRequired(id, "Rule ID");
 
   const rule = await RuleRepository.findRuleById(id, userId);
@@ -61,12 +67,7 @@ export async function createRule(
   validateRequired(input.name, "Rule name");
   validateRequired(input.content, "Rule content");
   validateLength(input.name, "Name", 1, 100);
-  validateLength(
-    input.content,
-    "Content",
-    1,
-    RULE_LIMITS.MAX_RULE_LENGTH
-  );
+  validateLength(input.content, "Content", 1, RULE_LIMITS.MAX_RULE_LENGTH);
 
   if (input.description) {
     validateLength(input.description, "Description", 0, 500);
@@ -105,12 +106,7 @@ export async function updateRule(
 
   // Validate content if provided
   if (input.content) {
-    validateLength(
-      input.content,
-      "Content",
-      1,
-      RULE_LIMITS.MAX_RULE_LENGTH
-    );
+    validateLength(input.content, "Content", 1, RULE_LIMITS.MAX_RULE_LENGTH);
   }
 
   // Validate description if provided
@@ -176,7 +172,11 @@ export async function linkRule(userId: string, ruleId: string, chatId: string) {
   await RuleRepository.linkRuleToChat(ruleId, chatId, userId);
 }
 
-export async function unlinkRule(userId: string, ruleId: string, chatId: string) {
+export async function unlinkRule(
+  userId: string,
+  ruleId: string,
+  chatId: string
+) {
   const rule = await RuleRepository.findRuleById(ruleId, userId);
   if (!rule) {
     throw new RuleNotFoundError("Rule not found");

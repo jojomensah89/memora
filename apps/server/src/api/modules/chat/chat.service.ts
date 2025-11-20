@@ -27,10 +27,8 @@ import type {
   ForkChatInput,
   ListChatsInput,
 } from "./chat.inputs";
+import type { CreateChatAttachmentData } from "./chat.repository";
 import * as ChatRepository from "./chat.repository";
-import type {
-  CreateChatAttachmentData,
-} from "./chat.repository";
 import type {
   CreateChatResult,
   EnhancePromptResult,
@@ -201,10 +199,7 @@ export async function enhancePrompt(
 
   let context: unknown;
   if (input.contextChatId) {
-    const chat = await ChatRepository.findChatById(
-      input.contextChatId,
-      userId
-    );
+    const chat = await ChatRepository.findChatById(input.contextChatId, userId);
     if (!chat) {
       throw new ChatNotFoundError("Context chat not found");
     }
@@ -333,7 +328,10 @@ export async function saveChatMessages(
   return await ChatRepository.saveMessages(chatId, messages);
 }
 
-export async function deleteChat(userId: string, chatId: string): Promise<void> {
+export async function deleteChat(
+  userId: string,
+  chatId: string
+): Promise<void> {
   // Verify ownership before deletion
   const chat = await ChatRepository.findChatById(chatId, userId);
   if (!chat) {

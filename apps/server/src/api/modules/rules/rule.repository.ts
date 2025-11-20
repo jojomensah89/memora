@@ -1,78 +1,81 @@
-
+import prisma from "@memora/db";
 import { DatabaseError } from "../../common/errors";
 import type { CreateRuleInput } from "./rule.inputs";
 import type { RuleStats, RuleWithTags } from "./rule.types";
-import  prisma  from "@memora/db";
-
-
-
 
 async function findRulesByUser(userId: string) {
-    try {
-      return await prisma.rule.findMany({
-        where: { userId },
-        include: { tags: true },
-        orderBy: [{ scope: "desc" }, { createdAt: "desc" }],
-      });
-    } catch (error) {
-      throw new DatabaseError("Failed to fetch rules", error);
-    }
+  try {
+    return await prisma.rule.findMany({
+      where: { userId },
+      include: { tags: true },
+      orderBy: [{ scope: "desc" }, { createdAt: "desc" }],
+    });
+  } catch (error) {
+    throw new DatabaseError("Failed to fetch rules", error);
   }
+}
 
-  async function findRulesForChat(chatId: string, userId: string): Promise<RuleWithTags[]> {
-    try {
-      // Get GLOBAL active rules + chat-specific LOCAL active rules
-      const [globalRules, chatRules] = await Promise.all([
-        // Global rules (available everywhere)
-        prisma.rule.findMany({
-          where: {
-            userId,
-            scope: "GLOBAL",
-            isActive: true,
-          },
-          include: { tags: true },
-          orderBy: { createdAt: "desc" },
-        }),
+async function findRulesForChat(
+  chatId: string,
+  userId: string
+): Promise<RuleWithTags[]> {
+  try {
+    // Get GLOBAL active rules + chat-specific LOCAL active rules
+    const [globalRules, chatRules] = await Promise.all([
+      // Global rules (available everywhere)
+      prisma.rule.findMany({
+        where: {
+          userId,
+          scope: "GLOBAL",
+          isActive: true,
+        },
+        include: { tags: true },
+        orderBy: { createdAt: "desc" },
+      }),
 
-        // Local rules linked to this chat
-        prisma.rule.findMany({
-          where: {
-            userId,
-            chatLinks: {
-              some: {
-                chatId,
-                isActive: true,
-              },
+      // Local rules linked to this chat
+      prisma.rule.findMany({
+        where: {
+          userId,
+          chatLinks: {
+            some: {
+              chatId,
+              isActive: true,
             },
           },
-          include: { tags: true },
-          orderBy: { createdAt: "desc" },
-        }),
-      ]);
-
-      return [...globalRules, ...chatRules];
-    } catch (error) {
-      throw new DatabaseError("Failed to fetch chat rules", error);
-    }
-  }
-
-   async function findRuleById(id: string, userId: string): Promise<RuleWithTags | null> {
-    try {
-      return (await prisma.rule.findFirst({
-        where: { id, userId },
+        },
         include: { tags: true },
-      })) as unknown as RuleWithTags;
-    } catch (error) {
-      throw new DatabaseError("Failed to fetch rule", error);
-    }
+        orderBy: { createdAt: "desc" },
+      }),
+    ]);
+
+    return [...globalRules, ...chatRules];
+  } catch (error) {
+    throw new DatabaseError("Failed to fetch chat rules", error);
   }
+}
 
-
+async function findRuleById(
+  id: string,
+  userId: string
+): Promise<RuleWithTags | null> {
+  try {
+    return (await prisma.rule.findFirst({
+      where: { id, userId },
+      include: { tags: true },
+    })) as unknown as RuleWithTags;
+  } catch (error) {
+    throw new DatabaseError("Failed to fetch rule", error);
+  }
+}
 
 /**
  * Create a new rule
  */
-async function createRule(userId: string, data: CreateRuleInput): Promise<RuleWithTags> {
+async function createRule(
+  userId: string,
+  data: CreateRuleInput
+): Promise<RuleWithTags> {
   try {
     return (await prisma.rule.create({
       data: {
@@ -155,7 +158,10 @@ async function deleteRule(id: string, userId: string): Promise<void> {
 /**
  * Toggle rule active status
  */
-async function toggleRuleActive(id: string, userId: string): Promise<RuleWithTags> {
+async function toggleRuleActive(
+  id: string,
+  userId: string
+): Promise<RuleWithTags> {
   try {
     const rule = await prisma.rule.findFirst({
       where: { id, userId },
@@ -197,7 +203,6 @@ async function linkRuleToChat(
     if (rule.scope !== "LOCAL") {
       throw new Error("Only LOCAL rules can be linked to chats");
     }
-
 
     await prisma.chatRule.create({
       data: {

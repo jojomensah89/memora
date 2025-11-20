@@ -39,7 +39,9 @@ import type {
 /**
  * Get all context items for user
  */
-export async function getContextItems(userId: string): Promise<ContextListResult> {
+export async function getContextItems(
+  userId: string
+): Promise<ContextListResult> {
   const [items, stats] = await Promise.all([
     findContextItemsByUser(userId),
     getContextStats(userId),
@@ -219,12 +221,7 @@ export async function createDocumentContext(
   // Validation
   validateRequired(input.content, "Content");
   validateLength(input.name, "Name", 1, 255);
-  validateLength(
-    input.content,
-    "Content",
-    1,
-    CONTEXT_LIMITS.MAX_CONTEXT_SIZE
-  );
+  validateLength(input.content, "Content", 1, CONTEXT_LIMITS.MAX_CONTEXT_SIZE);
   if (input.description) {
     validateLength(input.description, "Description", 0, 1000);
   }
@@ -298,17 +295,18 @@ export async function deleteContext(userId: string, id: string) {
   await deleteContextItem(id, userId);
 }
 
-export async function linkContext(userId: string, contextId: string, chatId: string) {
+export async function linkContext(
+  userId: string,
+  contextId: string,
+  chatId: string
+) {
   const item = await findContextItemById(contextId, userId);
   if (!item) {
     throw new ContextNotFoundError("Context item not found");
   }
 
   // Verify chat ownership
-  const hasOwnership = await validateChatOwnership(
-    chatId,
-    userId
-  );
+  const hasOwnership = await validateChatOwnership(chatId, userId);
 
   if (!hasOwnership) {
     throw new ValidationError("Chat not found or access denied");
@@ -317,7 +315,11 @@ export async function linkContext(userId: string, contextId: string, chatId: str
   await linkContextToChat(contextId, chatId, userId);
 }
 
-export async function unlinkContext(userId: string, contextId: string, chatId: string) {
+export async function unlinkContext(
+  userId: string,
+  contextId: string,
+  chatId: string
+) {
   const item = await findContextItemById(contextId, userId);
   if (!item) {
     throw new ContextNotFoundError("Context item not found");

@@ -71,7 +71,7 @@ const ChatWelcome = () => {
   const { sendMessage, status } = useChat({
     id: chatId,
     transport: new DefaultChatTransport({
-      api: apiEndpoint, 
+      api: apiEndpoint,
       prepareSendMessagesRequest({ messages, body }) {
         return {
           body: {

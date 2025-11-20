@@ -27,9 +27,7 @@ export function validateLength(
     );
   }
   if (max !== undefined && value.length > max) {
-    throw new ValidationError(
-      `${fieldName} must be at most ${max} characters`
-    );
+    throw new ValidationError(`${fieldName} must be at most ${max} characters`);
   }
 }
 

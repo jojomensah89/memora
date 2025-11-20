@@ -1,5 +1,5 @@
-import  prisma  from "@memora/db";
 import type { Prisma } from "@memora/db";
+import prisma from "@memora/db";
 import { DatabaseError } from "../../common/errors";
 import type {
   CreateMessageData,
@@ -76,10 +76,7 @@ export async function createMessageWithAttachments({
       },
     });
   } catch (error) {
-    throw new DatabaseError(
-      "Failed to create message with attachments",
-      error
-    );
+    throw new DatabaseError("Failed to create message with attachments", error);
   }
 }
 
@@ -192,7 +189,10 @@ export async function deleteMessage(id: string, userId: string): Promise<void> {
   }
 }
 
-export async function updateTokenCount(id: string, tokenCount: number): Promise<void> {
+export async function updateTokenCount(
+  id: string,
+  tokenCount: number
+): Promise<void> {
   try {
     await prisma.message.update({
       where: { id },
@@ -231,24 +231,31 @@ export async function getMessageStatisticsForChat(
 
     const stats = {
       totalMessages: messages.length,
-      userMessages: messages.filter((m: { role: string }) => m.role === "user").length,
-      assistantMessages: messages.filter((m: { role: string }) => m.role === "assistant")
+      userMessages: messages.filter((m: { role: string }) => m.role === "user")
         .length,
-      systemMessages: messages.filter((m: { role: string }) => m.role === "system").length,
+      assistantMessages: messages.filter(
+        (m: { role: string }) => m.role === "assistant"
+      ).length,
+      systemMessages: messages.filter(
+        (m: { role: string }) => m.role === "system"
+      ).length,
       totalTokens: 0,
     };
 
-    stats.totalTokens = messages.reduce((sum: number, message: { metadata: Prisma.JsonValue }) => {
-      const tokenCount =
-        message.metadata &&
-        typeof message.metadata === "object" &&
-        !Array.isArray(message.metadata) &&
-        "tokenCount" in message.metadata
-          ? Number((message.metadata as { tokenCount: number }).tokenCount) ||
-            0
-          : 0;
-      return sum + tokenCount;
-    }, 0);
+    stats.totalTokens = messages.reduce(
+      (sum: number, message: { metadata: Prisma.JsonValue }) => {
+        const tokenCount =
+          message.metadata &&
+          typeof message.metadata === "object" &&
+          !Array.isArray(message.metadata) &&
+          "tokenCount" in message.metadata
+            ? Number((message.metadata as { tokenCount: number }).tokenCount) ||
+              0
+            : 0;
+        return sum + tokenCount;
+      },
+      0
+    );
 
     return stats;
   } catch (error) {

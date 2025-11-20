@@ -1,5 +1,5 @@
-import prisma from "@memora/db";
 import type { AIProvider, AttachmentKind, Chat, Prisma } from "@memora/db";
+import prisma from "@memora/db";
 import type { UIMessage } from "ai";
 import { AVAILABLE_MODELS } from "../../common/constants";
 import { DatabaseError } from "../../common/errors";
@@ -270,7 +270,9 @@ export function listModels(): ModelDescriptor[] {
   }));
 }
 
-export async function listAttachmentsByChat(chatId: string): Promise<AttachmentMetadata[]> {
+export async function listAttachmentsByChat(
+  chatId: string
+): Promise<AttachmentMetadata[]> {
   try {
     const attachments = await prisma.attachment.findMany({
       where: { message: { chatId } },
@@ -324,29 +326,38 @@ export async function updateChat(
 
 export async function saveMessages(chatId: string, messages: UIMessage[]) {
   try {
-    // Prepare messages for bulk insert
-    const messageData = messages.map((msg) => {
-      const content = msg.parts
-        .filter((part) => part.type === "text")
-        .map((part) => part.text)
-        .join("");
+    // Use Promise.all with upsert to handle duplicate messages during streaming retries
+    // Note: createMany with skipDuplicates is not supported for models with many-to-many relations in SQLite
+    await Promise.all(
+      messages.map(async (msg) => {
+        const content = msg.parts
+          .filter((part) => part.type === "text")
+          .map((part) => part.text)
+          .join("");
 
-      return {
-        id: msg.id,
-        chatId,
-        role: msg.role,
-        content,
-        createdAt: (msg as any).createdAt ? new Date((msg as any).createdAt) : new Date(),
-        metadata: {
-          parts: msg.parts,
-        } as Prisma.InputJsonValue,
-      };
-    });
+        const messageData = {
+          chatId,
+          role: msg.role,
+          content,
+          createdAt: (msg as any).createdAt
+            ? new Date((msg as any).createdAt)
+            : new Date(),
+          metadata: {
+            parts: msg.parts,
+          } as Prisma.InputJsonValue,
+        };
 
-    // Bulk insert messages
-    await prisma.message.createMany({
-      data: messageData,
-    });
+        // Upsert to handle duplicate IDs gracefully
+        await prisma.message.upsert({
+          where: { id: msg.id },
+          update: {}, // Don't update existing messages
+          create: {
+            id: msg.id,
+            ...messageData,
+          },
+        });
+      })
+    );
 
     // Update chat's last activity
     await updateLastActivity(chatId);
@@ -355,7 +366,10 @@ export async function saveMessages(chatId: string, messages: UIMessage[]) {
   }
 }
 
-export async function deleteChat(chatId: string, userId: string): Promise<void> {
+export async function deleteChat(
+  chatId: string,
+  userId: string
+): Promise<void> {
   try {
     await prisma.chat.delete({
       where: { id: chatId, userId },
