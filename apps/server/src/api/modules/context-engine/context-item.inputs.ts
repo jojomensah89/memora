@@ -12,9 +12,12 @@ export const createContextItemSchema = z.object({
   content: z.string().min(1, "Content is required"),
   rawContent: z.string().optional(),
   scope: z.enum(["LOCAL", "GLOBAL"]).default("LOCAL"),
-  metadata: z.record(z.unknown()).optional(),
   tags: z.array(z.string()).optional().default([]),
   chatId: z.string().optional(), // Required if scope is LOCAL
+  // DB fields
+  size: z.number().int().optional(),
+  mimeType: z.string().optional(),
+  url: z.string().optional(),
 });
 
 export const uploadFileSchema = z.object({

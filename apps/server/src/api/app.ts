@@ -9,8 +9,10 @@ import { errorHandler } from "./middleware/error";
 import { createRateLimiter } from "./middleware/rate-limiter";
 import { setupRoutes } from "./routes";
 
+import type { AuthVariables } from "./types/auth.types";
+
 // Create and configure the main Hono app
-const app = new Hono();
+const app = new Hono<{ Variables: AuthVariables }>();
 
 // 1. Apply global middleware first
 app.use(logger());
@@ -84,8 +86,6 @@ app.get("/", (c) =>
         rules: "/api/v1/rules",
         context: "/api/v1/context-engine",
         streaming: "/api/v1/chat",
-        tokenUsage: "/api/v1/token-usage",
-        chatShare: "/api/v1/chat-share",
       },
     },
   })

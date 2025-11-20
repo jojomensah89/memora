@@ -1,9 +1,10 @@
 "use client";
 
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useChat } from "@ai-sdk/react";
+import { useQuery } from "@tanstack/react-query";
+import { DefaultChatTransport, generateId } from "ai";
 import { GlobeIcon } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   PromptInput,
   PromptInputActionAddAttachments,
@@ -28,52 +29,67 @@ import {
 } from "@/components/ai-elements/prompt-input";
 import { Gl } from "@/components/gl";
 import { useUser } from "@/hooks/use-user";
-import { fetchModels, type Model } from "@/lib/utils";
-import { apiClient, queryClient } from "@/utils/api-client";
 
-type CreateChatResponse = {
-  id: string;
-  chatId: string;
-  messageId: string;
-  provider: string;
-  modelId: string;
-  useWebSearch: boolean;
-};
+import { fetchModels } from "@/lib/utils";
 
 const ChatWelcome = () => {
   const [prompt, setPrompt] = useState("");
-  const [useWebSearch, setUseWebSearch] = useState<boolean>(false);
-  const router = useRouter();
+  const [webSearch, setUseWebSearch] = useState<boolean>(false);
+  const [userSelectedModel, setUserSelectedModel] = useState<
+    string | undefined
+  >(undefined);
+
+  // Generate chatId once to maintain state across re-renders
+  const chatId = generateId();
+
   const { user, isPending } = useUser();
 
   // Fetch models from backend
   const { data: modelsData } = useQuery({
     queryKey: ["models"],
     queryFn: fetchModels,
-    staleTime: Number.POSITIVE_INFINITY, // Models don't change often
+    staleTime: Number.POSITIVE_INFINITY,
   });
 
   const models = modelsData || [];
-  const [model, setModel] = useState<string>(() => {
-    // Default to first Gemini model or the first available model
-    const firstGemini = models.find((m: Model) => m.provider === "GEMINI");
-    return firstGemini?.modelId || models[0]?.modelId || "gemini-2.0-flash-exp";
-  });
 
-  const createChatMutation = useMutation<CreateChatResponse, Error, string>({
-    mutationFn: async (initialMessage: string) =>
-      apiClient.post<CreateChatResponse>("/api/chats", {
-        initialMessage,
-        modelId: model,
-        useWebSearch,
-        attachments: [],
-      }),
-    onSuccess: (data) => {
-      // Simple: Just navigate, let chat interface handle streaming
-      router.push(`/chat/${data.chatId}`);
+  // Auto-select first model when models load
+  useEffect(() => {
+    if (modelsData && modelsData.length > 0 && !userSelectedModel) {
+      setUserSelectedModel(modelsData[0].modelId);
+    }
+  }, [modelsData, userSelectedModel]);
 
-      // Invalidate queries so chat interface fetches fresh data
-      queryClient.invalidateQueries({ queryKey: ["chats"] });
+  // Pure derived state with nullish coalescing
+  const currentModel = userSelectedModel ?? "";
+
+  // For initial testing, use the Next.js API route directly
+  const apiEndpoint = useMemo(
+    () => `${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/chat`,
+    []
+  );
+  const { sendMessage, status } = useChat({
+    id: chatId,
+    transport: new DefaultChatTransport({
+      api: apiEndpoint,
+      prepareSendMessagesRequest({ messages, body }) {
+        return {
+          body: {
+            id: chatId,
+            messages,
+            model: currentModel,
+            webSearch,
+            ...body,
+          },
+        };
+      },
+    }),
+    onData(message) {
+      // Listen for chat-created event
+      if (message.type === "data-new-chat-created") {
+        // Update URL without navigation
+        globalThis.history.replaceState({}, "", `/chat/${chatId}`);
+      }
     },
   });
 
@@ -97,11 +113,16 @@ const ChatWelcome = () => {
   }
 
   const handleSubmit = (message: PromptInputMessage) => {
-    const text = message.text || "";
-    if (text.trim()) {
-      createChatMutation.mutate(text);
-      setPrompt("");
+    if (!message.text?.trim()) {
+      return;
     }
+
+    sendMessage({
+      text: message.text,
+      files: message.files,
+    });
+
+    setPrompt("");
   };
 
   return (
@@ -147,17 +168,17 @@ const ChatWelcome = () => {
                   </PromptInputActionMenu>
                   <PromptInputSpeechButton />
                   <PromptInputButton
-                    onClick={() => setUseWebSearch(!useWebSearch)}
-                    variant={useWebSearch ? "default" : "ghost"}
+                    onClick={() => setUseWebSearch(!webSearch)}
+                    variant={webSearch ? "default" : "ghost"}
                   >
                     <GlobeIcon size={16} />
                     <span>Search</span>
                   </PromptInputButton>
                   <PromptInputModelSelect
                     onValueChange={(value) => {
-                      setModel(value);
+                      setUserSelectedModel(value);
                     }}
-                    value={model}
+                    value={currentModel}
                   >
                     <PromptInputModelSelectTrigger>
                       <PromptInputModelSelectValue />
@@ -174,9 +195,7 @@ const ChatWelcome = () => {
                     </PromptInputModelSelectContent>
                   </PromptInputModelSelect>
                 </PromptInputTools>
-                <PromptInputSubmit
-                  disabled={createChatMutation.isPending || !prompt.trim()}
-                />
+                <PromptInputSubmit disabled={!prompt.trim()} status={status} />
               </PromptInputFooter>
             </PromptInput>
           </div>

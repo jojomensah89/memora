@@ -8,8 +8,9 @@ import { google } from "@ai-sdk/google";
 import { openai } from "@ai-sdk/openai";
 import type { LanguageModel } from "ai";
 import { InvalidModelError } from "../../common/errors";
+import { openrouter, openrouterModels } from "./open-router-provider";
 
-export type AIProvider = "CLAUDE" | "GEMINI" | "OPENAI";
+export type AIProvider = "CLAUDE" | "GEMINI" | "OPENAI" | "OPENROUTER";
 
 /**
  * Model configurations for each provider
@@ -18,12 +19,10 @@ export type AIProvider = "CLAUDE" | "GEMINI" | "OPENAI";
 const MODEL_CONFIG = {
   GEMINI: {
     prefix: "gemini",
-    defaultModel: "gemini-2.0-flash-exp",
+    defaultModel: "google/gemini-2.5-flash-preview-09-2025",
     models: [
-      "gemini-2.0-flash-exp",
-      "gemini-2.0-flash-thinking-exp-01-21",
-      "gemini-1.5-pro-latest",
-      "gemini-1.5-flash-latest",
+      "google/gemini-2.5-flash-preview-09-2025",
+      "google/gemini-2.5-flash-lite",
     ],
   },
   CLAUDE: {
@@ -40,6 +39,11 @@ const MODEL_CONFIG = {
     prefix: "gpt",
     defaultModel: "gpt-4o",
     models: ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-3.5-turbo"],
+  },
+  OPENROUTER: {
+    prefix: "openrouter",
+    defaultModel: "deepseek/deepseek-chat-v3.1:free",
+    models: openrouterModels,
   },
 } as const;
 
@@ -69,6 +73,12 @@ export function getModelInstance(
       }
       return openai(modelId);
 
+    case "OPENROUTER":
+      if (!process.env.OPENROUTER_API_KEY) {
+        throw new InvalidModelError("OPENROUTER_API_KEY is not configured");
+      }
+      return openrouter(modelId);
+
     default:
       throw new InvalidModelError(`Unsupported provider: ${provider}`);
   }
@@ -86,6 +96,9 @@ export function getProviderFromModel(modelId: string): AIProvider {
   }
   if (modelId.startsWith("gpt")) {
     return "OPENAI";
+  }
+  if (modelId.includes("/")) {
+    return "OPENROUTER";
   }
 
   throw new InvalidModelError(
@@ -128,23 +141,13 @@ export function getAllAvailableModels(): Array<{
     // Gemini models (Primary)
     {
       provider: "GEMINI",
-      modelId: "gemini-2.0-flash-exp",
-      name: "Gemini 2.0 Flash",
+      modelId: "google/gemini-2.5-flash-preview-09-2025",
+      name: "Gemini 2.5 Flash Preview",
     },
     {
       provider: "GEMINI",
-      modelId: "gemini-2.0-flash-thinking-exp-01-21",
-      name: "Gemini 2.0 Flash Thinking",
-    },
-    {
-      provider: "GEMINI",
-      modelId: "gemini-1.5-pro-latest",
-      name: "Gemini 1.5 Pro",
-    },
-    {
-      provider: "GEMINI",
-      modelId: "gemini-1.5-flash-latest",
-      name: "Gemini 1.5 Flash",
+      modelId: "google/gemini-2.5-flash-lite",
+      name: "Gemini 2.5 Flash Lite",
     },
     // Claude models
     {
@@ -176,6 +179,27 @@ export function getAllAvailableModels(): Array<{
       modelId: "gpt-3.5-turbo",
       name: "GPT-3.5 Turbo",
     },
+    // OpenRouter models
+    {
+      provider: "OPENROUTER",
+      modelId: "deepseek/deepseek-chat-v3.1:free",
+      name: "DeepSeek Chat V3.1 (Free)",
+    },
+    {
+      provider: "OPENROUTER",
+      modelId: "openai/gpt-oss-20b:free",
+      name: "OpenAI GPT-OSS 20B (Free)",
+    },
+    {
+      provider: "OPENROUTER",
+      modelId: "qwen/qwen3-coder:free",
+      name: "Qwen3 Coder (Free)",
+    },
+    {
+      provider: "OPENROUTER",
+      modelId: "deepseek/deepseek-r1-distill-llama-70b:free",
+      name: "DeepSeek R1 Distill LLaMA 70B (Free)",
+    },
   ];
 }
 
@@ -186,10 +210,12 @@ export function checkAPIKeys(): {
   claude: boolean;
   gemini: boolean;
   openai: boolean;
+  openrouter: boolean;
 } {
   return {
     claude: Boolean(process.env.ANTHROPIC_API_KEY),
     gemini: Boolean(process.env.GOOGLE_API_KEY),
     openai: Boolean(process.env.OPENAI_API_KEY),
+    openrouter: Boolean(process.env.OPENROUTER_API_KEY),
   };
 }

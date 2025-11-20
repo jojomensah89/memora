@@ -1,5 +1,4 @@
-import prisma from "@memora/db";
-import type { PrismaClient } from "@prisma/client";
+import prisma, { type PrismaClient } from "@memora/db";
 
 /**
  * Base Repository

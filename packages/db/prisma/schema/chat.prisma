@@ -23,9 +23,6 @@ model Chat {
   // Context & Rules
   contextLinks    ChatContext[]  // All context items linked to this chat
   ruleLinks       ChatRule[]     // All rules linked to this chat
-  
-  // Sharing
-  shares          ChatShare[]
 
   @@index([userId, createdAt])
   @@index([userId, isPinned])
@@ -87,29 +84,6 @@ enum AttachmentKind {
 }
 
 // ============================================
-// CHAT SHARING
-// ============================================
-
-model ChatShare {
-  id        String    @id @default(cuid()) @map("_id")
-  token     String    @unique @default(cuid()) // Share URL token
-  
-  isPublic  Boolean   @default(true)
-  expiresAt DateTime? // Optional expiration
-  
-  createdAt DateTime  @default(now())
-  
-  chatId    String
-  chat      Chat      @relation(fields: [chatId], references: [id], onDelete: Cascade)
-  
-  sharedById String
-  sharedBy   User     @relation(fields: [sharedById], references: [id], onDelete: Cascade)
-  
-  @@index([token])
-  @@map("chat_share")
-}
-
-// ============================================
 // AI PROVIDER ENUM
 // ============================================
 
@@ -117,4 +91,5 @@ enum AIProvider {
   CLAUDE
   GEMINI
   OPENAI
+  OPENROUTER
 }

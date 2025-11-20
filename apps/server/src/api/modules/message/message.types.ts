@@ -1,4 +1,4 @@
-import type { Attachment, Message, Prisma } from "@prisma/client";
+import type { Attachment, Message, Prisma } from "@memora/db";
 
 export type MessageWithAttachments = Message & {
   attachments: Attachment[];

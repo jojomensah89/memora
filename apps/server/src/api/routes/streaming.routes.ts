@@ -1,239 +1,219 @@
 /**
  * Streaming Routes
- * Handles real-time AI response streaming compatible with Vercel AI SDK's useChat hook
+ * Minimal implementation: forward UI messages to the AI model and stream back the response.
+ * No validation, persistence, or context/rules.
  */
 
 import {
   convertToModelMessages,
-  createIdGenerator,
+  createUIMessageStream,
+  createUIMessageStreamResponse,
   streamText,
   type UIMessage,
-  validateUIMessages,
 } from "ai";
 
 import { Hono } from "hono";
-import { z } from "zod";
-import { ChatNotFoundError } from "../common/errors";
+import z from "zod";
 import {
+  getDefaultModel,
   getModelInstance,
   getProviderFromModel,
 } from "../lib/ai/provider-factory";
-import {
-  buildSystemPrompt,
-  generateChatTitle,
-  injectContext,
-} from "../lib/prompt-builder";
-import { ChatRepository } from "../modules/chat/chat.repository";
-import { ChatService } from "../modules/chat/chat.service";
-import { ContextItemRepository } from "../modules/context-engine/context-item.repository";
-import { ContextItemService } from "../modules/context-engine/context-item.service";
-import { MessageRepository } from "../modules/message/message.repository";
-import { MessageService } from "../modules/message/message.service";
-import { RuleRepository } from "../modules/rules/rule.repository";
-import { RuleService } from "../modules/rules/rule.service";
-import { TokenUsageRepository } from "../modules/token-usage/token-usage.repository";
-import { TokenUsageService } from "../modules/token-usage/token-usage.service";
+import * as ChatService from "../modules/chat/chat.service";
 import type { AuthVariables } from "../types/auth.types";
 import type { AppContext } from "../types/hono.types";
 
 const app = new Hono<{ Variables: AuthVariables }>();
 
-// Initialize services
-const chatRepository = new ChatRepository();
-const chatService = new ChatService(chatRepository);
-
-const contextRepository = new ContextItemRepository();
-const contextService = new ContextItemService(contextRepository);
-
-const ruleRepository = new RuleRepository();
-const ruleService = new RuleService(ruleRepository);
-
-const messageRepository = new MessageRepository();
-const messageService = new MessageService(messageRepository);
-
-const tokenUsageRepository = new TokenUsageRepository();
-const tokenUsageService = new TokenUsageService(tokenUsageRepository);
-
-/**
- * Save messages atomically with proper error handling
- */
-type SaveMessagesInput = {
-  chatId: string;
-  userId: string;
-  messages: UIMessage[];
-  model: string;
-  provider: string;
-};
-
-async function saveMessages(input: SaveMessagesInput): Promise<void> {
-  // Get existing messages to avoid duplicates
-  const existingMessagesResult = await messageService.getMessagesByChat(
-    input.userId,
-    { chatId: input.chatId, limit: 1000 }
-  );
-  const existingMessageIds = new Set(
-    existingMessagesResult.messages.map((msg) => msg.id)
-  );
-
-  // Save each new message
-  for (const message of input.messages) {
-    // Skip if message already exists
-    if (existingMessageIds.has(message.id)) {
-      continue;
-    }
-
-    const content = message.parts
-      .filter((part) => part.type === "text")
-      .map((part) => part.text)
-      .join("");
-
-    const createdAt = message.createdAt
-      ? new Date(message.createdAt)
-      : new Date();
-
-    await messageService.create({
-      id: message.id,
-      chatId: input.chatId,
-      userId: input.userId,
-      content,
-      role: message.role,
-      metadata: {
-        parts: message.parts,
-        model: input.model,
-        provider: input.provider,
-        createdAt: createdAt.toISOString(),
-      },
-      createdAt,
-      attachments: [],
-    });
-
-    existingMessageIds.add(message.id);
-  }
-
-  // Update chat's last activity
-  await chatRepository.updateLastActivity(input.chatId);
-
-  // Generate title for new chats if needed
-  const chat = await chatService.getChatById(input.chatId, input.userId);
-  if (!chat?.title && input.messages.length > 0) {
-    const lastUserMessage = input.messages
-      .filter((m) => m.role === "user")
-      .pop()
-      ?.parts.find((p) => p.type === "text")?.text;
-
-    if (lastUserMessage) {
-      const title = generateChatTitle(lastUserMessage);
-      await chatService.updateChat(input.userId, {
-        id: input.chatId,
-        title,
-      });
-    }
-  }
-}
-
-/**
- * AI SDK v5 message format - accept UIMessage format
- */
-const streamRequestSchema = z.object({
-  id: z.string(), // chatId
-  messages: z.array(z.any()), // AI SDK v5 UIMessage format
-  model: z.string().optional(), // Move to top level
-  webSearch: z.boolean().optional(), // Move to top level
+const messageMetadataSchema = z.object({
+  createdAt: z.number().optional(),
+  totalTokens: z.number().optional(),
 });
 
-app.post("/", async (c: AppContext) => {
-  const authUser = c.get("authUser");
-
-  const body = await c.req.json();
-  const { id: chatId, messages, model } = streamRequestSchema.parse(body);
-
-  // Validate UI messages to ensure schema compatibility
-  const uiMessages = await validateUIMessages({
-    messages: messages as UIMessage[],
-  });
-
-  // 1. Fetch chat and verify ownership
-  const chat = await chatService.getChatById(chatId, authUser.id);
-  if (!chat) {
-    throw new ChatNotFoundError("Chat not found");
+type MessageMetadata = z.infer<typeof messageMetadataSchema>;
+export type MyUIMessage = UIMessage<MessageMetadata>;
+type NewUiMessage = UIMessage<
+  unknown,
+  {
+    "new-chat-created": {
+      id: string;
+    };
   }
+>;
 
-  // 2. Get context and rules for this chat
-  const [contextItems, rules] = await Promise.all([
-    contextService.getForChat(chatId, authUser.id),
-    ruleService.getForChat(chatId, authUser.id),
-  ]);
+app.post("/", async (c: AppContext) => {
+  try {
+    const {
+      messages,
+      model,
+    }: { messages: MyUIMessage[]; model: string; webSearch: boolean } =
+      await c.req.json();
 
-  // 3. Build system prompt with rules
-  const systemPrompt = buildSystemPrompt(rules);
+    const requestedModel = model;
+    const modelId = requestedModel ?? getDefaultModel("GEMINI");
 
-  // 4. Convert UI messages to model messages for internal processing
-  const modelMessages = convertToModelMessages(uiMessages);
+    const provider = getProviderFromModel(modelId);
+    const modelInstance = getModelInstance(provider, modelId);
 
-  // 5. Inject context into model messages
-  const messagesWithContext = injectContext(modelMessages, contextItems);
+    const result = streamText({
+      model: modelInstance,
+      messages: convertToModelMessages(messages),
+      // providerOptions: {
+      //   openai: {
+      //     reasoningSummary: "auto",
+      //     reasoningEffort: "low"
+      //   },google:{
+      //     reasoningSummary: "auto",
+      //     reasoningEffort: "low"
+      //   }
+      // }
+    });
+    return result.toUIMessageStreamResponse({
+      sendReasoning: true,
+      sendSources: true,
+      messageMetadata: ({ part }) => {
+        if (part.type === "start") {
+          return {
+            createdAt: Date.now(),
+          };
+        }
+        if (part.type === "finish") {
+          console.log(part.totalUsage);
+          return {
+            createdAt: Date.now(),
+            totalTokens: part.totalUsage.totalTokens,
+          };
+        }
+      },
+    });
+  } catch (error) {
+    console.error("Error streaming text:", error);
+    return c.json({ error: "Internal server error" }, 500);
+  }
+});
 
-  // 6. Add system prompt at the beginning
-  const finalMessages = [
-    { role: "system" as const, content: systemPrompt },
-    ...messagesWithContext,
-  ];
+app.post("/extreme", async (c: AppContext) => {
+  try {
+    const {
+      messages,
+      model,
+      id: chatId,
+      webSearch,
+    }: {
+      messages: NewUiMessage[];
+      model: string;
+      webSearch: boolean;
+      id: string;
+    } = await c.req.json();
+    const authUser = c.get("authUser");
+    const requestedModel = model;
+    const modelId = requestedModel ?? getDefaultModel("GEMINI");
 
-  // 7. Get model instance
-  const provider = getProviderFromModel(model || chat.model);
-  const modelInstance = getModelInstance(provider, model || chat.model);
+    const provider = getProviderFromModel(modelId);
+    const modelInstance = getModelInstance(provider, modelId);
 
-  // 8. Stream AI response
-  const result = streamText({
-    model: modelInstance,
-    messages: finalMessages,
-    temperature: 0.7,
-    onFinish: async (completion) => {
-      try {
-        // Track token usage
-        const usage = completion.usage;
-        if (usage) {
-          await tokenUsageService.create({
-            userId: authUser.id,
-            provider,
-            modelId: model || chat.model,
-            inputTokens: usage.inputTokens || 0,
-            outputTokens: usage.outputTokens || 0,
+    const stream = createUIMessageStream({
+      execute: async ({ writer }) => {
+        try {
+          // Check if chat exists
+          await ChatService.getChatById(chatId, authUser.id);
+        } catch (error) {
+          // Chat doesn't exist, create it
+          const initialMessage =
+            messages[0]?.parts.find((p) => p.type === "text")?.text || "";
+
+          await ChatService.createChat(authUser.id, {
             chatId,
+            modelId,
+            initialMessage,
+            useWebSearch: webSearch,
+            attachments: [],
+          });
+
+          writer.write({
+            type: "data-new-chat-created",
+            data: {
+              id: chatId,
+            },
           });
         }
-      } catch (_error) {
-        // Error caught but stream continues - no action needed
-      }
-    },
-  });
 
-  // 9. Return UI message streaming response with proper parameters
-  return result.toUIMessageStreamResponse({
-    originalMessages: uiMessages,
-    generateMessageId: createIdGenerator({
-      prefix: "msg",
-      size: 16,
-    }),
-    onFinish: async ({ messages }) => {
-      // Save all messages including AI response atomically
-      await saveMessages({
-        chatId,
-        userId: authUser.id,
-        messages,
-        model: model || chat.model,
-        provider,
-      });
-    },
-  });
+        const result = streamText({
+          model: modelInstance,
+          messages: convertToModelMessages(messages),
+        });
+
+        // forward the initial result to the client without the finish event:
+        writer.merge(result.toUIMessageStream());
+      },
+      onFinish: async ({ messages: updatedMessages }) => {
+        try {
+          // Save the updated messages to the database
+          await ChatService.saveChatMessages(
+            authUser.id,
+            chatId,
+            updatedMessages as unknown as MyUIMessage[]
+          );
+        } catch (error) {
+          // Log the error with full context for debugging
+          const { logger } = await import("../common/logger");
+
+          logger.error("Failed to save chat messages", {
+            error: error instanceof Error ? error.message : String(error),
+            chatId,
+            userId: authUser.id,
+            messageCount: updatedMessages.length,
+            ...(error instanceof Error && { stack: error.stack }),
+            ...(process.env.NODE_ENV === "development" && {
+              messages: updatedMessages.map((m: any) => ({
+                id: m.id,
+                role: m.role,
+              })),
+            }),
+          });
+
+          // Don't throw - streaming already completed, just log the error
+          // The client has already received the AI response successfully
+        }
+      },
+    });
+
+    return createUIMessageStreamResponse({ stream });
+  } catch (error) {
+    // handleError will throw an AppError which will be caught by Hono's error middleware
+    const { handleError } = await import("../common/errors");
+    handleError(error);
+    // This line is never reached, but TypeScript needs a return
+    throw error;
+  }
 });
 
 app.get("/models", async (c: AppContext) => {
-  const { getAllAvailableModels } = await import("../lib/ai/provider-factory");
+  const { getAllAvailableModels, checkAPIKeys } = await import(
+    "../lib/ai/provider-factory"
+  );
+
   const models = getAllAvailableModels();
+  const keys = checkAPIKeys();
+
+  const filtered = models.filter((model) => {
+    if (model.provider === "GEMINI") {
+      return keys.gemini;
+    }
+    if (model.provider === "CLAUDE") {
+      return keys.claude;
+    }
+    if (model.provider === "OPENAI") {
+      return keys.openai;
+    }
+    if (model.provider === "OPENROUTER") {
+      return keys.openrouter;
+    }
+    return false;
+  });
 
   return c.json({
-    models,
+    models: filtered,
     default: "gemini-2.0-flash-exp",
   });
 });

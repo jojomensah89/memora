@@ -1,135 +1,87 @@
+import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
+import { z } from "zod";
+import * as ChatController from "../modules/chat/chat.controller";
 import {
-  createChatInputSchema,
-  enhancePromptInputSchema,
-  forkChatInputSchema,
-  getChatInputSchema,
-  listChatsInputSchema,
+  createChatSchema,
+  enhancePromptSchema,
+  forkChatSchema,
+  listChatsSchema,
+  updateChatSchema,
 } from "../modules/chat/chat.inputs";
-import type { ChatModule } from "../modules/chat/chat.module";
 import type { AuthVariables } from "../types/auth.types";
-import type { AppContext } from "../types/hono.types";
 
-export function createChatRoutes(module: ChatModule) {
-  const app = new Hono<{ Variables: AuthVariables }>();
-  const { controller } = module;
+const app = new Hono<{ Variables: AuthVariables }>();
 
-  app.get("/models", async (c: AppContext) => {
-    const models = controller.getModels();
-    return c.json(models);
-  });
+app.post("/", zValidator("json", createChatSchema), async (c) => {
+  const authUser = c.get("authUser");
+  const input = c.req.valid("json");
+  const result = await ChatController.createChat(authUser.id, input);
+  return c.json(result);
+});
 
-  app.post("/", async (c: AppContext) => {
+app.get("/", zValidator("query", listChatsSchema), async (c) => {
+  const authUser = c.get("authUser");
+  const input = c.req.valid("query");
+  const result = await ChatController.listChats(authUser.id, input);
+  return c.json(result);
+});
+
+app.get("/models", async (c) => {
+  const result = ChatController.getModels();
+  return c.json(result);
+});
+
+app.post("/enhance", zValidator("json", enhancePromptSchema), async (c) => {
+  const authUser = c.get("authUser");
+  const input = c.req.valid("json");
+  const result = await ChatController.enhancePrompt(authUser.id, input);
+  return c.json(result);
+});
+
+app.post("/fork", zValidator("json", forkChatSchema), async (c) => {
+  const authUser = c.get("authUser");
+  const input = c.req.valid("json");
+  const result = await ChatController.forkChat(authUser.id, input);
+  return c.json(result);
+});
+
+app.get(
+  "/:id",
+  zValidator("param", z.object({ id: z.string() })),
+  async (c) => {
     const authUser = c.get("authUser");
-    try {
-      const body = await c.req.json();
-      const input = createChatInputSchema.parse(body);
-      const chat = await controller.createChat(authUser.id, input);
-      return c.json(chat, 201);
-    } catch (error) {
-      if (error instanceof Error) {
-        return c.json({ error: error.message }, 400);
-      }
-      return c.json({ error: "Internal server error" }, 500);
-    }
-  });
+    const { id } = c.req.valid("param");
+    const result = await ChatController.getChat(authUser.id, { id });
+    return c.json(result);
+  }
+);
 
-  app.get("/", async (c: AppContext) => {
+app.put(
+  "/:id",
+  zValidator("param", z.object({ id: z.string() })),
+  zValidator("json", updateChatSchema),
+  async (c) => {
     const authUser = c.get("authUser");
+    const { id } = c.req.valid("param");
+    const input = c.req.valid("json");
+    const result = await ChatController.updateChat(authUser.id, {
+      id,
+      ...input,
+    });
+    return c.json(result);
+  }
+);
 
-    try {
-      const query = c.req.query();
-      const input = listChatsInputSchema.parse(query);
-      const result = await controller.listChats(authUser.id, input);
-      return c.json({
-        data: result.chats,
-        cursor: result.nextCursor ?? null,
-        hasMore: Boolean(result.nextCursor),
-      });
-    } catch (error) {
-      if (error instanceof Error) {
-        return c.json({ error: error.message }, 400);
-      }
-      return c.json({ error: "Internal server error" }, 500);
-    }
-  });
-
-  app.get("/:id", async (c: AppContext) => {
+app.delete(
+  "/:id",
+  zValidator("param", z.object({ id: z.string() })),
+  async (c) => {
     const authUser = c.get("authUser");
+    const { id } = c.req.valid("param");
+    await ChatController.deleteChat(authUser.id, id);
+    return c.json({ success: true });
+  }
+);
 
-    try {
-      const { id } = getChatInputSchema.parse({ id: c.req.param("id") });
-      const chat = await controller.getChat(authUser.id, { id });
-
-      if (!chat) {
-        return c.json({ error: "Chat not found" }, 404);
-      }
-
-      return c.json(chat);
-    } catch (error) {
-      if (error instanceof Error) {
-        return c.json({ error: error.message }, 400);
-      }
-      return c.json({ error: "Internal server error" }, 500);
-    }
-  });
-
-  app.post("/:id/enhance", async (c: AppContext) => {
-    const authUser = c.get("authUser");
-
-    try {
-      const { id: _id } = getChatInputSchema.parse({ id: c.req.param("id") });
-      const body = await c.req.json();
-      const input = enhancePromptInputSchema.parse(body);
-      const result = await controller.enhancePrompt(authUser.id, input);
-      return c.json(result);
-    } catch (error) {
-      if (error instanceof Error && error.name === "ZodError") {
-        return c.json({ error: "Validation failed", details: error }, 400);
-      }
-      return c.json({ error: "Internal server error" }, 500);
-    }
-  });
-
-  app.post("/:id/fork", async (c: AppContext) => {
-    const authUser = c.get("authUser");
-
-    try {
-      const { id: _id } = getChatInputSchema.parse({ id: c.req.param("id") });
-      const body = await c.req.json();
-      const input = forkChatInputSchema.parse(body);
-      const forkedChat = await controller.forkChat(authUser.id, input);
-      return c.json(forkedChat, 201);
-    } catch (error) {
-      if (error instanceof Error) {
-        return c.json({ error: error.message }, 400);
-      }
-      return c.json({ error: "Internal server error" }, 500);
-    }
-  });
-
-  app.post("/:id/messages", async (c: AppContext) => {
-    const authUser = c.get("authUser");
-
-    try {
-      const { id } = getChatInputSchema.parse({ id: c.req.param("id") });
-      const body = await c.req.json();
-      const { message } = { message: "string" }.parse(body);
-      const response = await controller.generateAIResponse(
-        authUser.id,
-        id,
-        message
-      );
-      return c.json(response);
-    } catch (error) {
-      if (error instanceof Error) {
-        return c.json({ error: error.message }, 400);
-      }
-      return c.json({ error: "Internal server error" }, 500);
-    }
-  });
-
-  return app;
-}
-
-export default createChatRoutes;
+export default app;
