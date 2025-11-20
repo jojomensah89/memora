@@ -20,8 +20,6 @@ import {
   validateMimeType,
   validateRequired,
 } from "../../common/utils";
-import type { ContextItem } from "../context-engine/context-item.types";
-import type { Rule } from "../rules/rule.types";
 import type {
   AttachmentInput,
   CreateChatInput,
@@ -38,7 +36,6 @@ import type {
   EnhancePromptResult,
   ModelDescriptor,
 } from "./chat.types";
-import { ChatStreamService } from "./chat-stream.service";
 
 type PromptEnhancerResult = Pick<
   EnhancePromptResult,
@@ -257,44 +254,6 @@ export async function forkChat(userId: string, input: ForkChatInput) {
     title || `Fork of ${originalChat.title}`,
     forkedFromMessageId
   );
-}
-
-export async function generateAIResponse(
-  userId: string,
-  chatId: string,
-  message: string
-): Promise<any> {
-  // Get chat details
-  const chat = await ChatRepository.findChatById(chatId, userId);
-  if (!chat) {
-    throw new ChatNotFoundError("Chat not found");
-  }
-
-  // Get context and rules for the chat
-  const context = await getContextForChat(chatId);
-  const rules = await getRulesForChat(chatId);
-
-  const streamService = new ChatStreamService();
-
-  return await streamService.generateResponse({
-    chatId,
-    userId,
-    message,
-    provider: chat.provider,
-    modelId: chat.model,
-    context,
-    rules,
-  });
-}
-
-async function getContextForChat(_chatId: string): Promise<ContextItem[]> {
-  // Placeholder for context service integration
-  return [];
-}
-
-async function getRulesForChat(_chatId: string): Promise<Rule[]> {
-  // Placeholder for rules service integration
-  return [];
 }
 
 function resolveTitle(initialMessage: string) {

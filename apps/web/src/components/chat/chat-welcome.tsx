@@ -65,13 +65,13 @@ const ChatWelcome = () => {
 
   // For initial testing, use the Next.js API route directly
   const apiEndpoint = useMemo(
-    () => `${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/chat`,
+    () => `${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/chat/extreme`,
     []
   );
   const { sendMessage, status } = useChat({
     id: chatId,
     transport: new DefaultChatTransport({
-      api: apiEndpoint, // POST endpoint
+      api: apiEndpoint, 
       prepareSendMessagesRequest({ messages, body }) {
         return {
           body: {
