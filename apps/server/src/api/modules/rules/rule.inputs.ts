@@ -45,6 +45,18 @@ export const deleteRuleSchema = z.object({
   id: z.string(),
 });
 
+export const listRulesSchema = z.object({
+  query: z.string().optional(),
+  scope: z.enum(["GLOBAL", "LOCAL"]).optional(),
+  isActive: z
+    .string()
+    .transform((val) => val === "true")
+    .optional(),
+  tags: z.union([z.string(), z.array(z.string())]).optional(), // Can be single string or array
+});
+
+export type ListRulesInput = z.infer<typeof listRulesSchema>;
+
 // Type exports
 export type CreateRuleInput = z.infer<typeof createRuleSchema>;
 export type UpdateRuleInput = z.infer<typeof updateRuleSchema>;

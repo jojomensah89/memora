@@ -6,32 +6,37 @@ import {
   deleteRule,
   getChatRules,
   getRule,
-  getRules,
   linkRule,
   toggleRule,
   unlinkRule,
   updateRule,
 } from "../modules/rules/rule.controller";
+import {
+  createRuleSchema,
+  deleteRuleSchema,
+  getRuleSchema,
+  getRulesForChatSchema,
+  listRulesSchema,
+  toggleRuleSchema,
+  updateRuleSchema,
+} from "../modules/rules/rule.inputs";
+import * as RuleService from "../modules/rules/rule.service";
 import type { AuthVariables } from "../types/auth.types";
 
 const app = new Hono<{ Variables: AuthVariables }>();
 
 // GET /api/rules - List rules
-app.get("/", async (c) => {
+app.get("/", zValidator("query", listRulesSchema), async (c) => {
   const user = c.get("authUser");
-  const result = await getRules(user.id);
+  const filters = c.req.valid("query");
+  const result = await RuleService.getRules(user.id, filters);
   return c.json(result);
 });
 
 // GET /api/rules/chat/:chatId - List rules for chat
 app.get(
   "/chat/:chatId",
-  zValidator(
-    "param",
-    z.object({
-      chatId: z.string(),
-    })
-  ),
+  zValidator("param", getRulesForChatSchema),
   async (c) => {
     const user = c.get("authUser");
     const { chatId } = c.req.valid("param");
@@ -43,12 +48,7 @@ app.get(
 // GET /api/rules/:id - Get specific rule
 app.get(
   "/:id",
-  zValidator(
-    "param",
-    z.object({
-      id: z.string(),
-    })
-  ),
+  zValidator("param", getRuleSchema),
   async (c) => {
     const user = c.get("authUser");
     const { id } = c.req.valid("param");
@@ -60,18 +60,7 @@ app.get(
 // POST /api/rules - Create rule
 app.post(
   "/",
-  zValidator(
-    "json",
-    z.object({
-      name: z.string(),
-      content: z.string(),
-      scope: z.enum(["LOCAL", "GLOBAL"]).default("GLOBAL"),
-      tags: z.array(z.string()).optional().default([]),
-      isActive: z.boolean().default(true),
-      description: z.string().optional(),
-      chatId: z.string().optional(),
-    })
-  ),
+  zValidator("json", createRuleSchema),
   async (c) => {
     const user = c.get("authUser");
     const input = c.req.valid("json");
@@ -83,22 +72,8 @@ app.post(
 // PUT /api/rules/:id - Update rule
 app.put(
   "/:id",
-  zValidator(
-    "param",
-    z.object({
-      id: z.string(),
-    })
-  ),
-  zValidator(
-    "json",
-    z.object({
-      name: z.string().optional(),
-      content: z.string().optional(),
-      tags: z.array(z.string()).optional(),
-      isActive: z.boolean().optional(),
-      description: z.string().optional(),
-    })
-  ),
+  zValidator("param", getRuleSchema),
+  zValidator("json", updateRuleSchema),
   async (c) => {
     const user = c.get("authUser");
     const { id } = c.req.valid("param");
@@ -111,12 +86,7 @@ app.put(
 // DELETE /api/rules/:id - Delete rule
 app.delete(
   "/:id",
-  zValidator(
-    "param",
-    z.object({
-      id: z.string(),
-    })
-  ),
+  zValidator("param", deleteRuleSchema),
   async (c) => {
     const user = c.get("authUser");
     const { id } = c.req.valid("param");
@@ -128,12 +98,7 @@ app.delete(
 // POST /api/rules/:id/toggle - Toggle rule active status
 app.post(
   "/:id/toggle",
-  zValidator(
-    "param",
-    z.object({
-      id: z.string(),
-    })
-  ),
+  zValidator("param", toggleRuleSchema),
   async (c) => {
     const user = c.get("authUser");
     const { id } = c.req.valid("param");
@@ -145,12 +110,7 @@ app.post(
 // POST /api/rules/:id/link - Link rule to chat
 app.post(
   "/:id/link",
-  zValidator(
-    "param",
-    z.object({
-      id: z.string(),
-    })
-  ),
+  zValidator("param", getRuleSchema),
   zValidator(
     "json",
     z.object({
@@ -169,12 +129,7 @@ app.post(
 // POST /api/rules/:id/unlink - Unlink rule from chat
 app.post(
   "/:id/unlink",
-  zValidator(
-    "param",
-    z.object({
-      id: z.string(),
-    })
-  ),
+  zValidator("param", getRuleSchema),
   zValidator(
     "json",
     z.object({

@@ -5,7 +5,7 @@ import {
   validateLength,
   validateRequired,
 } from "../../common/utils/validation.util";
-import type { CreateRuleInput } from "./rule.inputs";
+import type { CreateRuleInput, ListRulesInput } from "./rule.inputs";
 import * as RuleRepository from "./rule.repository";
 import type { RuleListResult, RuleWithTags } from "./rule.types";
 
@@ -14,11 +14,14 @@ const MODULE = "RuleService";
 /**
  * Get all rules for user
  */
-export async function getRules(userId: string): Promise<RuleListResult> {
+export async function getRules(
+  userId: string,
+  filters?: ListRulesInput
+): Promise<RuleListResult> {
   const perf = perfLogger("rules.getAll", { module: MODULE, userId });
 
   const [rules, stats] = await Promise.all([
-    RuleRepository.findRulesByUser(userId),
+    RuleRepository.findRulesByUser(userId, filters),
     RuleRepository.getRuleStats(userId),
   ]);
 

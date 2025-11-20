@@ -1,12 +1,42 @@
 import prisma from "@memora/db";
 import { DatabaseError } from "../../common/errors";
-import type { CreateRuleInput } from "./rule.inputs";
+import type { CreateRuleInput, ListRulesInput } from "./rule.inputs";
 import type { RuleStats, RuleWithTags } from "./rule.types";
+import type { Prisma } from "@prisma/client";
 
-async function findRulesByUser(userId: string) {
+async function findRulesByUser(userId: string, filters?: ListRulesInput) {
   try {
+    // FIXME: Prisma types are out of sync. Regenerate client after stopping dev server.
+    const where: any = { userId };
+
+    if (filters?.query) {
+      where.OR = [
+        { name: { contains: filters.query } },
+        { content: { contains: filters.query } },
+      ];
+    }
+
+    if (filters?.scope) {
+      where.scope = filters.scope;
+    }
+
+    if (filters?.isActive !== undefined) {
+      where.isActive = filters.isActive;
+    }
+
+    if (filters?.tags) {
+      const tags = Array.isArray(filters.tags) ? filters.tags : [filters.tags];
+      if (tags.length > 0) {
+        where.tags = {
+          some: {
+            name: { in: tags },
+          },
+        };
+      }
+    }
+
     return await prisma.rule.findMany({
-      where: { userId },
+      where,
       include: { tags: true },
       orderBy: [{ scope: "desc" }, { createdAt: "desc" }],
     });

@@ -65,7 +65,7 @@ const ChatWelcome = () => {
 
   // For initial testing, use the Next.js API route directly
   const apiEndpoint = useMemo(
-    () => `${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/chat/extreme`,
+    () => `${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/chat`,
     []
   );
   const { sendMessage, status } = useChat({
