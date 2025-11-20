@@ -5,152 +5,169 @@ import type {
   PromoteToGlobalInput,
   UploadFileInput,
 } from "./context-item.inputs";
-import type { ContextItemService } from "./context-item.service";
+import {
+  createContextFromGitHub,
+  createContextFromUrl,
+  createDocumentContext,
+  deleteContext,
+  getChatContextItems,
+  getContextItem,
+  getContextItems,
+  linkContext,
+  promoteContextToGlobal,
+  unlinkContext,
+  updateContext,
+  uploadFileContext,
+} from "./context-item.service";
 
 /**
- * Context Item Controller
- * Handles requests and orchestrates service calls
- * All errors are caught and handled here
+ * Get all context items for current user
  */
-export class ContextItemController {
-  private readonly service: ContextItemService;
-
-  constructor(service: ContextItemService) {
-    this.service = service;
+export async function getAllContextItems(userId: string) {
+  try {
+    return await getContextItems(userId);
+  } catch (error) {
+    handleError(error);
   }
+}
 
-  /**
-   * Get all context items for current user
-   */
-  async getAll(userId: string) {
-    try {
-      return await this.service.getAll(userId);
-    } catch (error) {
-      handleError(error);
-    }
+/**
+ * Get context items for specific chat
+ */
+export async function getContextForChat(
+  userId: string,
+  input: GetContextForChatInput
+) {
+  try {
+    return await getChatContextItems(input.chatId, userId);
+  } catch (error) {
+    handleError(error);
   }
+}
 
-  /**
-   * Get context items for specific chat
-   */
-  async getForChat(userId: string, input: GetContextForChatInput) {
-    try {
-      return await this.service.getForChat(input.chatId, userId);
-    } catch (error) {
-      handleError(error);
-    }
+/**
+ * Get single context item by ID
+ */
+export async function getContextById(
+  userId: string,
+  input: GetContextItemInput
+) {
+  try {
+    return await getContextItem(input.id, userId);
+  } catch (error) {
+    handleError(error);
   }
+}
 
-  /**
-   * Get single context item by ID
-   */
-  async getById(userId: string, input: GetContextItemInput) {
-    try {
-      return await this.service.getById(input.id, userId);
-    } catch (error) {
-      handleError(error);
-    }
+/**
+ * Upload file and create LOCAL context
+ */
+export async function uploadFile(userId: string, input: UploadFileInput) {
+  try {
+    return await uploadFileContext(userId, input);
+  } catch (error) {
+    handleError(error);
   }
+}
 
-  /**
-   * Upload file and create LOCAL context
-   */
-  async uploadFile(userId: string, input: UploadFileInput) {
-    try {
-      return await this.service.uploadFile(userId, input);
-    } catch (error) {
-      handleError(error);
-    }
+/**
+ * Promote LOCAL context to GLOBAL
+ */
+export async function promoteToGlobal(
+  userId: string,
+  input: PromoteToGlobalInput
+) {
+  try {
+    return await promoteContextToGlobal(input.id, userId);
+  } catch (error) {
+    handleError(error);
   }
+}
 
-  /**
-   * Promote LOCAL context to GLOBAL
-   */
-  async promoteToGlobal(userId: string, input: PromoteToGlobalInput) {
-    try {
-      return await this.service.promoteToGlobal(input.id, userId);
-    } catch (error) {
-      handleError(error);
-    }
+/**
+ * Create context from URL
+ */
+export async function createFromUrl(userId: string, input: any) {
+  try {
+    return await createContextFromUrl(userId, input);
+  } catch (error) {
+    handleError(error);
   }
+}
 
-  /**
-   * Create context from URL
-   */
-  async createFromUrl(userId: string, input: any) {
-    try {
-      return await this.service.createFromUrl(userId, input);
-    } catch (error) {
-      handleError(error);
-    }
+/**
+ * Create context from GitHub repository
+ */
+export async function createFromGitHub(userId: string, input: any) {
+  try {
+    return await createContextFromGitHub(userId, input);
+  } catch (error) {
+    handleError(error);
   }
+}
 
-  /**
-   * Create context from GitHub repository
-   */
-  async createFromGitHub(userId: string, input: any) {
-    try {
-      return await this.service.createFromGitHub(userId, input);
-    } catch (error) {
-      handleError(error);
-    }
+/**
+ * Create context from document
+ */
+export async function createDocument(userId: string, input: any) {
+  try {
+    return await createDocumentContext(userId, input);
+  } catch (error) {
+    handleError(error);
   }
+}
 
-  /**
-   * Create context from document
-   */
-  async createDocument(userId: string, input: any) {
-    try {
-      return await this.service.createDocument(userId, input);
-    } catch (error) {
-      handleError(error);
-    }
+/**
+ * Update existing context item
+ */
+export async function update(userId: string, id: string, input: any) {
+  try {
+    return await updateContext(userId, id, input);
+  } catch (error) {
+    handleError(error);
   }
+}
 
-  /**
-   * Update existing context item
-   */
-  async update(userId: string, id: string, input: any) {
-    try {
-      return await this.service.update(userId, id, input);
-    } catch (error) {
-      handleError(error);
-    }
+/**
+ * Delete context item
+ */
+export async function deleteItem(userId: string, id: string) {
+  try {
+    await deleteContext(userId, id);
+    return { success: true };
+  } catch (error) {
+    handleError(error);
   }
+}
 
-  /**
-   * Delete context item
-   */
-  async delete(userId: string, id: string) {
-    try {
-      await this.service.delete(userId, id);
-      return { success: true };
-    } catch (error) {
-      handleError(error);
-    }
+/**
+ * Link context item to chat
+ */
+export async function linkToChat(
+  userId: string,
+  contextId: string,
+  chatId: string
+) {
+  try {
+    await linkContext(userId, contextId, chatId);
+    return { success: true };
+  } catch (error) {
+    handleError(error);
   }
+}
 
-  /**
-   * Link context item to chat
-   */
-  async linkToChat(userId: string, contextId: string, chatId: string) {
-    try {
-      await this.service.linkToChat(userId, contextId, chatId);
-      return { success: true };
-    } catch (error) {
-      handleError(error);
-    }
-  }
-
-  /**
-   * Unlink context item from chat
-   */
-  async unlinkFromChat(userId: string, contextId: string, chatId: string) {
-    try {
-      await this.service.unlinkFromChat(userId, contextId, chatId);
-      return { success: true };
-    } catch (error) {
-      handleError(error);
-    }
+/**
+ * Unlink context item from chat
+ */
+export async function unlinkFromChat(
+  userId: string,
+  contextId: string,
+  chatId: string
+) {
+  try {
+    await unlinkContext(userId, contextId, chatId);
+    return { success: true };
+  } catch (error) {
+    handleError(error);
   }
 }

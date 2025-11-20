@@ -1,182 +1,186 @@
-import { BaseService } from "../../common/base";
 import { RULE_LIMITS } from "../../common/constants";
 import { RuleNotFoundError, ValidationError } from "../../common/errors";
+import { errorLogger, perfLogger } from "../../common/logger";
+import { validateLength, validateRequired } from "../../common/utils/validation.util";
 import type { CreateRuleInput } from "./rule.inputs";
-import { RuleRepository } from "./rule.repository";
+import * as RuleRepository from "./rule.repository";
 import type { RuleListResult, RuleWithTags } from "./rule.types";
 
+const MODULE = "RuleService";
+
 /**
- * Rule Service
- * Contains business logic for rules management
+ * Get all rules for user
  */
-export class RuleService extends BaseService {
-  private readonly repository: RuleRepository = new RuleRepository();
+export async function getRules(userId: string): Promise<RuleListResult> {
+  const perf = perfLogger("rules.getAll", { module: MODULE, userId });
 
-  constructor() {
-    super();
+  const [rules, stats] = await Promise.all([
+    RuleRepository.findRulesByUser(userId),
+    RuleRepository.getRuleStats(userId),
+  ]);
+
+  perf.end();
+
+  return { rules, stats };
+}
+
+/**
+ * Get rules applicable to a chat (GLOBAL + LOCAL)
+ */
+export async function getChatRules(
+  chatId: string,
+  userId: string
+): Promise<RuleWithTags[]> {
+  validateRequired(chatId, "Chat ID");
+  return RuleRepository.findRulesForChat(chatId, userId);
+}
+
+/**
+ * Get single rule by ID
+ */
+export async function getRule(id: string, userId: string): Promise<RuleWithTags> {
+  validateRequired(id, "Rule ID");
+
+  const rule = await RuleRepository.findRuleById(id, userId);
+
+  if (!rule) {
+    throw new RuleNotFoundError("Rule not found");
   }
 
-  /**
-   * Get all rules for user
-   */
-  async getAll(userId: string): Promise<RuleListResult> {
-    const perf = this.getPerfLogger("rules.getAll", { userId });
+  return rule;
+}
 
-    const [rules, stats] = await Promise.all([
-      this.repository.findAllByUser(userId),
-      this.repository.getStats(userId),
-    ]);
+/**
+ * Create a new rule
+ */
+export async function createRule(
+  userId: string,
+  input: CreateRuleInput
+): Promise<RuleWithTags> {
+  // Validation
+  validateRequired(input.name, "Rule name");
+  validateRequired(input.content, "Rule content");
+  validateLength(input.name, "Name", 1, 100);
+  validateLength(
+    input.content,
+    "Content",
+    1,
+    RULE_LIMITS.MAX_RULE_LENGTH
+  );
 
-    perf.end();
-
-    return { rules, stats };
+  if (input.description) {
+    validateLength(input.description, "Description", 0, 500);
   }
 
-  /**
-   * Get rules applicable to a chat (GLOBAL + LOCAL)
-   */
-  async getForChat(chatId: string, userId: string): Promise<RuleWithTags[]> {
-    this.validateRequired(chatId, "Chat ID");
-    return this.repository.findForChat(chatId, userId);
+  // Check limits
+  const stats = await RuleRepository.getRuleStats(userId);
+
+  if (
+    input.scope === "GLOBAL" &&
+    stats.global >= RULE_LIMITS.MAX_RULES_GLOBAL
+  ) {
+    throw new ValidationError(
+      `Maximum ${RULE_LIMITS.MAX_RULES_GLOBAL} global rules allowed`
+    );
   }
 
-  /**
-   * Get single rule by ID
-   */
-  async getById(id: string, userId: string): Promise<RuleWithTags> {
-    this.validateRequired(id, "Rule ID");
-
-    const rule = await this.repository.findById(id, userId);
-
-    if (!rule) {
-      throw new RuleNotFoundError("Rule not found");
-    }
-
-    return rule;
+  // Validate LOCAL scope has chatId
+  if (input.scope === "LOCAL" && !input.chatId) {
+    throw new ValidationError("Chat ID required for LOCAL scope rules");
   }
 
-  /**
-   * Create a new rule
-   */
-  async create(userId: string, input: CreateRuleInput): Promise<RuleWithTags> {
-    // Validation
-    this.validateRequired(input.name, "Rule name");
-    this.validateRequired(input.content, "Rule content");
-    this.validateLength(input.name, "Name", 1, 100);
-    this.validateLength(
+  // Create rule
+  return RuleRepository.createRule(userId, input);
+}
+
+export async function updateRule(
+  userId: string,
+  id: string,
+  input: Partial<CreateRuleInput>
+) {
+  const rule = await RuleRepository.findRuleById(id, userId);
+  if (!rule) {
+    throw new RuleNotFoundError("Rule not found");
+  }
+
+  // Validate content if provided
+  if (input.content) {
+    validateLength(
       input.content,
       "Content",
       1,
       RULE_LIMITS.MAX_RULE_LENGTH
     );
-
-    if (input.description) {
-      this.validateLength(input.description, "Description", 0, 500);
-    }
-
-    // Check limits
-    const stats = await this.repository.getStats(userId);
-
-    if (
-      input.scope === "GLOBAL" &&
-      stats.global >= RULE_LIMITS.MAX_RULES_GLOBAL
-    ) {
-      throw new ValidationError(
-        `Maximum ${RULE_LIMITS.MAX_RULES_GLOBAL} global rules allowed`
-      );
-    }
-
-    // Validate LOCAL scope has chatId
-    if (input.scope === "LOCAL" && !input.chatId) {
-      throw new ValidationError("Chat ID required for LOCAL scope rules");
-    }
-
-    // Create rule
-    return this.repository.create(userId, input);
   }
 
-  async update(userId: string, id: string, input: Partial<CreateRuleInput>) {
-    const rule = await this.repository.findById(id, userId);
+  // Validate description if provided
+  if (input.description) {
+    validateLength(input.description, "Description", 0, 500);
+  }
+
+  return await RuleRepository.updateRule(id, userId, input);
+}
+
+export async function deleteRule(userId: string, id: string) {
+  const rule = await RuleRepository.findRuleById(id, userId);
+  if (!rule) {
+    throw new RuleNotFoundError("Rule not found");
+  }
+
+  await RuleRepository.deleteRule(id, userId);
+}
+
+export async function toggleRule(userId: string, id: string) {
+  const perf = perfLogger("rules.toggleActive", {
+    module: MODULE,
+    userId,
+    ruleId: id,
+  });
+
+  try {
+    const rule = await RuleRepository.findRuleById(id, userId);
     if (!rule) {
       throw new RuleNotFoundError("Rule not found");
     }
 
-    // Validate content if provided
-    if (input.content) {
-      this.validateLength(
-        input.content,
-        "Content",
-        1,
-        RULE_LIMITS.MAX_RULE_LENGTH
-      );
-    }
-
-    // Validate description if provided
-    if (input.description) {
-      this.validateLength(input.description, "Description", 0, 500);
-    }
-
-    return await this.repository.update(id, userId, input);
-  }
-
-  async delete(userId: string, id: string) {
-    const rule = await this.repository.findById(id, userId);
-    if (!rule) {
-      throw new RuleNotFoundError("Rule not found");
-    }
-
-    await this.repository.delete(id, userId);
-  }
-
-  async toggleActive(userId: string, id: string) {
-    const perf = this.getPerfLogger("rules.toggleActive", {
+    const result = await RuleRepository.toggleRuleActive(id, userId);
+    perf.end();
+    return result;
+  } catch (error) {
+    errorLogger("Failed to toggle rule active status", error, {
+      module: MODULE,
       userId,
+      action: "toggleActive",
       ruleId: id,
     });
+    throw error;
+  }
+}
 
-    try {
-      const rule = await this.repository.findById(id, userId);
-      if (!rule) {
-        throw new RuleNotFoundError("Rule not found");
-      }
-
-      const result = await this.repository.toggleActive(id, userId);
-      perf.end();
-      return result;
-    } catch (error) {
-      this.getErrorLogger({ userId, action: "toggleActive", ruleId: id })(
-        "Failed to toggle rule active status",
-        error
-      );
-      throw error;
-    }
+export async function linkRule(userId: string, ruleId: string, chatId: string) {
+  const rule = await RuleRepository.findRuleById(ruleId, userId);
+  if (!rule) {
+    throw new RuleNotFoundError("Rule not found");
   }
 
-  async linkToChat(userId: string, ruleId: string, chatId: string) {
-    const rule = await this.repository.findById(ruleId, userId);
-    if (!rule) {
-      throw new RuleNotFoundError("Rule not found");
-    }
+  // Verify chat ownership
+  const hasOwnership = await RuleRepository.validateChatOwnership(
+    chatId,
+    userId
+  );
 
-    // Verify chat ownership
-    const hasOwnership = await this.repository.validateChatOwnership(
-      chatId,
-      userId
-    );
-
-    if (!hasOwnership) {
-      throw new ValidationError("Chat not found or access denied");
-    }
-
-    await this.repository.linkToChat(ruleId, chatId, userId);
+  if (!hasOwnership) {
+    throw new ValidationError("Chat not found or access denied");
   }
 
-  async unlinkFromChat(userId: string, ruleId: string, chatId: string) {
-    const rule = await this.repository.findById(ruleId, userId);
-    if (!rule) {
-      throw new RuleNotFoundError("Rule not found");
-    }
+  await RuleRepository.linkRuleToChat(ruleId, chatId, userId);
+}
 
-    await this.repository.unlinkFromChat(ruleId, chatId, userId);
+export async function unlinkRule(userId: string, ruleId: string, chatId: string) {
+  const rule = await RuleRepository.findRuleById(ruleId, userId);
+  if (!rule) {
+    throw new RuleNotFoundError("Rule not found");
   }
+
+  await RuleRepository.unlinkRuleFromChat(ruleId, chatId, userId);
 }

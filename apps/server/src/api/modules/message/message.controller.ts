@@ -6,66 +6,68 @@ import type {
   GetMessagesByChatInput,
   UpdateMessageInput,
 } from "./message.inputs";
-import type { MessageService } from "./message.service";
+import {
+  createMessage as createMessageService,
+  deleteMessage as deleteMessageService,
+  getMessageById as getMessageByIdService,
+  getMessageStatistics as getMessageStatisticsService,
+  getMessagesByChat as getMessagesByChatService,
+  updateMessage as updateMessageService,
+} from "./message.service";
 
-export class MessageController {
-  private readonly service: MessageService;
-
-  constructor(service: MessageService) {
-    this.service = service;
+export async function createMessage(userId: string, input: CreateMessageInput) {
+  try {
+    return await createMessageService(userId, input);
+  } catch (error) {
+    handleError(error);
   }
+}
 
-  async createMessage(userId: string, input: CreateMessageInput) {
-    try {
-      return await this.service.createMessage(userId, input);
-    } catch (error) {
-      handleError(error);
-    }
+export async function getMessagesByChat(
+  userId: string,
+  input: GetMessagesByChatInput
+) {
+  try {
+    return await getMessagesByChatService(userId, input);
+  } catch (error) {
+    handleError(error);
   }
+}
 
-  async getMessagesByChat(userId: string, input: GetMessagesByChatInput) {
-    try {
-      return await this.service.getMessagesByChat(userId, input);
-    } catch (error) {
-      handleError(error);
-    }
+export async function getMessage(userId: string, input: GetMessageInput) {
+  try {
+    return await getMessageByIdService(userId, input.id);
+  } catch (error) {
+    handleError(error);
   }
+}
 
-  async getMessage(userId: string, input: GetMessageInput) {
-    try {
-      return await this.service.getMessageById(userId, input.id);
-    } catch (error) {
-      handleError(error);
-    }
+export async function updateMessage(
+  userId: string,
+  messageId: string,
+  input: UpdateMessageInput
+) {
+  try {
+    await updateMessageService(userId, messageId, input);
+    return { success: true };
+  } catch (error) {
+    handleError(error);
   }
+}
 
-  async updateMessage(
-    userId: string,
-    messageId: string,
-    input: UpdateMessageInput
-  ) {
-    try {
-      await this.service.updateMessage(userId, messageId, input);
-      return { success: true };
-    } catch (error) {
-      handleError(error);
-    }
+export async function deleteMessage(userId: string, input: DeleteMessageInput) {
+  try {
+    await deleteMessageService(userId, input.id);
+    return { success: true };
+  } catch (error) {
+    handleError(error);
   }
+}
 
-  async deleteMessage(userId: string, input: DeleteMessageInput) {
-    try {
-      await this.service.deleteMessage(userId, input.id);
-      return { success: true };
-    } catch (error) {
-      handleError(error);
-    }
-  }
-
-  async getMessageStatistics(userId: string, chatId: string) {
-    try {
-      return await this.service.getMessageStatistics(userId, chatId);
-    } catch (error) {
-      handleError(error);
-    }
+export async function getMessageStatistics(userId: string, chatId: string) {
+  try {
+    return await getMessageStatisticsService(userId, chatId);
+  } catch (error) {
+    handleError(error);
   }
 }

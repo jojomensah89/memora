@@ -1,105 +1,189 @@
+import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { z } from "zod";
+import {
+  createDocument,
+  createFromGitHub,
+  createFromUrl,
+  deleteItem,
+  getAllContextItems,
+  getContextById,
+  getContextForChat,
+  linkToChat,
+  promoteToGlobal,
+  unlinkFromChat,
+  update,
+  uploadFile,
+} from "../modules/context-engine/context-item.controller";
+import {
+  createContextItemSchema,
+  deleteContextItemSchema,
+  getContextForChatSchema,
+  getContextItemSchema,
+  promoteToGlobalSchema,
+  uploadFileSchema,
+} from "../modules/context-engine/context-item.inputs";
 import type { AuthVariables } from "../types/auth.types";
-import type { AppContext } from "../types/hono.types";
 
-const app = new Hono<{ Variables: AuthVariables }>();
+const contextRoutes = new Hono<{ Variables: AuthVariables }>();
 
-// GET /api/context-engine - List context items
-app.get("/", async (c: AppContext) => {
-  // TODO: Implement actual context retrieval logic
-  return c.json({
-    data: [],
-    hasMore: false,
-    total: 0,
-    message: "Context items endpoint - to be fully implemented",
-  });
+// Get all context items
+contextRoutes.get("/", async (c) => {
+  const user = c.get("authUser");
+  return c.json(await getAllContextItems(user.id));
 });
 
-// GET /api/context-engine/:id - Get specific context item
-app.get("/:id", async (c: AppContext) => {
-  const { id } = c.req.param();
-
-  // TODO: Implement actual context item retrieval logic
-  return c.json({
-    message: `Get context item ${id} - to be fully implemented`,
-  });
-});
-
-// POST /api/context-engine - Create context item
-app.post("/", async (c: AppContext) => {
-  const body = await c.req.json();
-
-  const createContextItemSchema = z.object({
-    name: z.string().min(1, "Name is required").max(200, "Name too long"),
-    description: z.string().max(500, "Description too long").optional(),
-    type: z.enum(["FILE", "URL", "GITHUB_REPO", "DOCUMENT"]),
-    content: z.string().min(1, "Content is required"),
-    rawContent: z.string().optional(),
-    scope: z.enum(["LOCAL", "GLOBAL"]).default("LOCAL"),
-    metadata: z.record(z.unknown()).optional(),
-    tags: z.array(z.string()).optional().default([]),
-    chatId: z.string().optional(),
-  });
-
-  try {
-    const input = createContextItemSchema.parse(body);
-
-    // TODO: Implement actual context item creation logic
-    return c.json(
-      {
-        message: "Create context item - to be fully implemented",
-        data: input,
-      },
-      201
-    );
-  } catch (error) {
-    if (error instanceof Error && error.name === "ZodError") {
-      return c.json({ error: "Validation failed", details: error }, 400);
-    }
-    return c.json({ error: "Internal server error" }, 500);
+// Get context items for chat
+contextRoutes.get(
+  "/chat/:chatId",
+  zValidator("param", getContextForChatSchema),
+  async (c) => {
+    const user = c.get("authUser");
+    const { chatId } = c.req.valid("param");
+    return c.json(await getContextForChat(user.id, { chatId }));
   }
-});
+);
 
-// POST /api/context-engine/upload - Upload file context
-app.post("/upload", async (c: AppContext) => {
-  const body = await c.req.json();
-
-  const uploadFileSchema = z.object({
-    filename: z.string().min(1),
-    mimeType: z.string(),
-    size: z.number().positive(),
-    content: z.string(),
-    chatId: z.string(),
-    tags: z.array(z.string()).optional().default([]),
-  });
-
-  try {
-    const input = uploadFileSchema.parse(body);
-
-    // TODO: Implement actual file upload and processing logic
-    return c.json(
-      {
-        message: "Upload file context - to be fully implemented",
-        data: input,
-      },
-      201
-    );
-  } catch (error) {
-    if (error instanceof Error && error.name === "ZodError") {
-      return c.json({ error: "Validation failed", details: error }, 400);
-    }
-    return c.json({ error: "Internal server error" }, 500);
+// Get single context item
+contextRoutes.get(
+  "/:id",
+  zValidator("param", getContextItemSchema),
+  async (c) => {
+    const user = c.get("authUser");
+    const { id } = c.req.valid("param");
+    return c.json(await getContextById(user.id, { id }));
   }
-});
+);
 
-// DELETE /api/context-engine/:id - Delete context item
-app.delete("/:id", async (c: AppContext) => {
-  const _authUser = c.get("authUser");
-  const { id: _id } = c.req.param();
+// Upload file
+contextRoutes.post(
+  "/upload",
+  zValidator("json", uploadFileSchema),
+  async (c) => {
+    const user = c.get("authUser");
+    const input = c.req.valid("json");
+    return c.json(await uploadFile(user.id, input));
+  }
+);
 
-  // TODO: Implement actual context item deletion logic
-  return c.text("", 204);
-});
+// Create from URL
+contextRoutes.post(
+  "/url",
+  zValidator(
+    "json",
+    z.object({
+      name: z.string(),
+      url: z.string().url(),
+      description: z.string().optional(),
+      chatId: z.string().optional(),
+    })
+  ),
+  async (c) => {
+    const user = c.get("authUser");
+    const input = c.req.valid("json");
+    return c.json(await createFromUrl(user.id, input));
+  }
+);
 
-export default app;
+// Create from GitHub
+contextRoutes.post(
+  "/github",
+  zValidator(
+    "json",
+    z.object({
+      name: z.string(),
+      repoUrl: z.string().url(),
+      branch: z.string().optional(),
+      filePaths: z.array(z.string()).optional(),
+      description: z.string().optional(),
+      chatId: z.string().optional(),
+    })
+  ),
+  async (c) => {
+    const user = c.get("authUser");
+    const input = c.req.valid("json");
+    return c.json(await createFromGitHub(user.id, input));
+  }
+);
+
+// Create document
+contextRoutes.post(
+  "/document",
+  zValidator(
+    "json",
+    z.object({
+      name: z.string(),
+      content: z.string(),
+      description: z.string().optional(),
+      chatId: z.string().optional(),
+    })
+  ),
+  async (c) => {
+    const user = c.get("authUser");
+    const input = c.req.valid("json");
+    return c.json(await createDocument(user.id, input));
+  }
+);
+
+// Promote to global
+contextRoutes.post(
+  "/:id/promote",
+  zValidator("param", promoteToGlobalSchema),
+  async (c) => {
+    const user = c.get("authUser");
+    const { id } = c.req.valid("param");
+    return c.json(await promoteToGlobal(user.id, { id }));
+  }
+);
+
+// Update context item
+contextRoutes.put(
+  "/:id",
+  zValidator("param", getContextItemSchema),
+  zValidator("json", createContextItemSchema.partial()),
+  async (c) => {
+    const user = c.get("authUser");
+    const { id } = c.req.valid("param");
+    const input = c.req.valid("json");
+    return c.json(await update(user.id, id, input));
+  }
+);
+
+// Delete context item
+contextRoutes.delete(
+  "/:id",
+  zValidator("param", deleteContextItemSchema),
+  async (c) => {
+    const user = c.get("authUser");
+    const { id } = c.req.valid("param");
+    return c.json(await deleteItem(user.id, id));
+  }
+);
+
+// Link to chat
+contextRoutes.post(
+  "/:id/link",
+  zValidator("param", z.object({ id: z.string() })),
+  zValidator("json", z.object({ chatId: z.string() })),
+  async (c) => {
+    const user = c.get("authUser");
+    const { id } = c.req.valid("param");
+    const { chatId } = c.req.valid("json");
+    return c.json(await linkToChat(user.id, id, chatId));
+  }
+);
+
+// Unlink from chat
+contextRoutes.post(
+  "/:id/unlink",
+  zValidator("param", z.object({ id: z.string() })),
+  zValidator("json", z.object({ chatId: z.string() })),
+  async (c) => {
+    const user = c.get("authUser");
+    const { id } = c.req.valid("param");
+    const { chatId } = c.req.valid("json");
+    return c.json(await unlinkFromChat(user.id, id, chatId));
+  }
+);
+
+export default contextRoutes;

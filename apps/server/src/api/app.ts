@@ -9,8 +9,10 @@ import { errorHandler } from "./middleware/error";
 import { createRateLimiter } from "./middleware/rate-limiter";
 import { setupRoutes } from "./routes";
 
+import type { AuthVariables } from "./types/auth.types";
+
 // Create and configure the main Hono app
-const app = new Hono();
+const app = new Hono<{ Variables: AuthVariables }>();
 
 // 1. Apply global middleware first
 app.use(logger());

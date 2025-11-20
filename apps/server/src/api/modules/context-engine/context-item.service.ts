@@ -1,4 +1,3 @@
-import { BaseService } from "../../common/base";
 import { CONTEXT_LIMITS } from "../../common/constants";
 import {
   ContextNotFoundError,
@@ -11,315 +10,323 @@ import {
   validateFileSize,
   validateMimeType,
 } from "../../common/utils";
+import {
+  validateLength,
+  validateRequired,
+} from "../../common/utils/validation.util";
 import type {
   CreateContextItemInput,
   UploadFileInput,
 } from "./context-item.inputs";
-import { ContextItemRepository } from "./context-item.repository";
+import {
+  createContextItem,
+  deleteContextItem,
+  findContextItemById,
+  findContextItemsByUser,
+  findContextItemsForChat,
+  getContextStats,
+  linkContextToChat,
+  promoteContextItemToGlobal,
+  unlinkContextFromChat,
+  updateContextItem,
+  validateChatOwnership,
+} from "./context-item.repository";
 import type {
   ContextItemWithTags,
   ContextListResult,
 } from "./context-item.types";
 
 /**
- * Context Item Service
- * Contains business logic for context management
+ * Get all context items for user
  */
-export class ContextItemService extends BaseService {
-  private readonly repository: ContextItemRepository =
-    new ContextItemRepository();
+export async function getContextItems(userId: string): Promise<ContextListResult> {
+  const [items, stats] = await Promise.all([
+    findContextItemsByUser(userId),
+    getContextStats(userId),
+  ]);
 
-  constructor() {
-    super();
+  return { items, stats };
+}
+
+/**
+ * Get context items applicable to a chat (GLOBAL + LOCAL)
+ */
+export async function getChatContextItems(
+  chatId: string,
+  userId: string
+): Promise<ContextItemWithTags[]> {
+  validateRequired(chatId, "Chat ID");
+  return findContextItemsForChat(chatId, userId);
+}
+
+/**
+ * Get single context item by ID
+ */
+export async function getContextItem(
+  id: string,
+  userId: string
+): Promise<ContextItemWithTags> {
+  validateRequired(id, "Context item ID");
+
+  const item = await findContextItemById(id, userId);
+
+  if (!item) {
+    throw new ContextNotFoundError("Context item not found");
   }
 
-  /**
-   * Get all context items for user
-   */
-  async getAll(userId: string): Promise<ContextListResult> {
-    const [items, stats] = await Promise.all([
-      this.repository.findAllByUser(userId),
-      this.repository.getStats(userId),
-    ]);
+  return item;
+}
 
-    return { items, stats };
+/**
+ * Upload file and create LOCAL context item
+ */
+export async function uploadFileContext(
+  userId: string,
+  input: UploadFileInput
+): Promise<ContextItemWithTags> {
+  // Validate file
+  validateFilename(input.filename);
+  validateFileSize(input.size);
+  validateMimeType(input.mimeType);
+
+  // Check content size
+  if (input.content.length > CONTEXT_LIMITS.MAX_CONTEXT_SIZE) {
+    throw new PayloadTooLargeError("File content exceeds maximum size");
   }
 
-  /**
-   * Get context items applicable to a chat (GLOBAL + LOCAL)
-   */
-  async getForChat(
-    chatId: string,
-    userId: string
-  ): Promise<ContextItemWithTags[]> {
-    this.validateRequired(chatId, "Chat ID");
-    return this.repository.findForChat(chatId, userId);
+  // Estimate tokens
+  const tokens = estimateTokens(input.content);
+
+  if (tokens > CONTEXT_LIMITS.MAX_TOKEN_COUNT) {
+    throw new ValidationError(
+      `File contains too many tokens (${tokens}). Maximum: ${CONTEXT_LIMITS.MAX_TOKEN_COUNT}`
+    );
   }
 
-  /**
-   * Get single context item by ID
-   */
-  async getById(id: string, userId: string): Promise<ContextItemWithTags> {
-    this.validateRequired(id, "Context item ID");
+  // Create context item as LOCAL
+  const contextItem: CreateContextItemInput = {
+    name: input.filename,
+    type: "FILE",
+    content: input.content,
+    scope: "LOCAL", // Files uploaded in chat are always LOCAL
+    mimeType: input.mimeType,
+    size: input.size,
+    tags: input.tags,
+    chatId: input.chatId,
+  };
 
-    const item = await this.repository.findById(id, userId);
+  return createContextItem(userId, contextItem);
+}
 
-    if (!item) {
-      throw new ContextNotFoundError("Context item not found");
-    }
+/**
+ * Promote context item from LOCAL to GLOBAL
+ */
+export async function promoteContextToGlobal(
+  id: string,
+  userId: string
+): Promise<ContextItemWithTags> {
+  // Check if exists and belongs to user
+  const item = await getContextItem(id, userId);
 
-    return item;
+  if (item.scope === "GLOBAL") {
+    throw new ValidationError("Context item is already global");
   }
 
-  /**
-   * Upload file and create LOCAL context item
-   */
-  async uploadFile(
-    userId: string,
-    input: UploadFileInput
-  ): Promise<ContextItemWithTags> {
-    // Validate file
-    validateFilename(input.filename);
-    validateFileSize(input.size);
-    validateMimeType(input.mimeType);
+  return promoteContextItemToGlobal(id, userId);
+}
 
-    // Check content size
-    if (input.content.length > CONTEXT_LIMITS.MAX_CONTEXT_SIZE) {
-      throw new PayloadTooLargeError("File content exceeds maximum size");
-    }
-
-    // Estimate tokens
-    const tokens = estimateTokens(input.content);
-
-    if (tokens > CONTEXT_LIMITS.MAX_TOKEN_COUNT) {
-      throw new ValidationError(
-        `File contains too many tokens (${tokens}). Maximum: ${CONTEXT_LIMITS.MAX_TOKEN_COUNT}`
-      );
-    }
-
-    // Create context item as LOCAL
-    const contextItem: CreateContextItemInput = {
-      name: input.filename,
-      type: "FILE",
-      content: input.content,
-      scope: "LOCAL", // Files uploaded in chat are always LOCAL
-      metadata: {
-        mimeType: input.mimeType,
-        size: input.size,
-        uploadedAt: new Date().toISOString(),
-      },
-      tags: input.tags,
-      chatId: input.chatId,
-    };
-
-    return this.repository.create(userId, contextItem);
+export async function createContextFromUrl(
+  userId: string,
+  input: {
+    name: string;
+    description?: string;
+    url: string;
+    chatId?: string;
+  }
+) {
+  // Basic validation
+  validateRequired(input.url, "URL");
+  validateLength(input.name, "Name", 1, 255);
+  if (input.description) {
+    validateLength(input.description, "Description", 0, 1000);
   }
 
-  /**
-   * Promote context item from LOCAL to GLOBAL
-   */
-  async promoteToGlobal(
-    id: string,
-    userId: string
-  ): Promise<ContextItemWithTags> {
-    // Check if exists and belongs to user
-    const item = await this.getById(id, userId);
+  // For now, just store the URL as content
+  // TODO: Implement URL content fetching
+  const contextItem: CreateContextItemInput = {
+    name: input.name,
+    description: input.description,
+    type: "URL",
+    content: input.url,
+    url: input.url,
+    size: input.url.length,
+    scope: input.chatId ? "LOCAL" : "GLOBAL",
+    chatId: input.chatId,
+    tags: [],
+  };
 
-    if (item.scope === "GLOBAL") {
-      throw new ValidationError("Context item is already global");
-    }
+  return await createContextItem(userId, contextItem);
+}
 
-    return this.repository.promoteToGlobal(id, userId);
+export async function createContextFromGitHub(
+  userId: string,
+  input: {
+    name: string;
+    description?: string;
+    repoUrl: string;
+    branch?: string;
+    filePaths?: string[];
+    chatId?: string;
+  }
+) {
+  // Basic validation
+  validateRequired(input.repoUrl, "Repository URL");
+  validateLength(input.name, "Name", 1, 255);
+  if (input.description) {
+    validateLength(input.description, "Description", 0, 1000);
   }
 
-  async createFromUrl(
-    userId: string,
-    input: {
-      name: string;
-      description?: string;
-      url: string;
-      chatId?: string;
-    }
-  ) {
-    // Basic validation
-    this.validateRequired(input.url, "URL");
-    this.validateLength(input.name, "Name", 1, 255);
-    if (input.description) {
-      this.validateLength(input.description, "Description", 0, 1000);
-    }
+  // For now, just store the repo info as content
+  // TODO: Implement GitHub cloning and file processing
+  const contextItem: CreateContextItemInput = {
+    name: input.name,
+    description: input.description,
+    type: "GITHUB_REPO",
+    content: JSON.stringify({
+      repoUrl: input.repoUrl,
+      branch: input.branch || "main",
+      filePaths: input.filePaths || [],
+    }),
+    url: input.repoUrl,
+    size: input.repoUrl.length,
+    scope: input.chatId ? "LOCAL" : "GLOBAL",
+    chatId: input.chatId,
+    tags: [],
+  };
 
-    // For now, just store the URL as content
-    // TODO: Implement URL content fetching
-    const contextItem: CreateContextItemInput = {
-      name: input.name,
-      description: input.description,
-      type: "URL",
-      content: input.url,
-      size: input.url.length,
-      scope: input.chatId ? "LOCAL" : "GLOBAL",
-      chatId: input.chatId,
-    };
+  return await createContextItem(userId, contextItem);
+}
 
-    return await this.repository.create(userId, contextItem);
+export async function createDocumentContext(
+  userId: string,
+  input: {
+    name: string;
+    description?: string;
+    content: string;
+    chatId?: string;
+  }
+) {
+  // Validation
+  validateRequired(input.content, "Content");
+  validateLength(input.name, "Name", 1, 255);
+  validateLength(
+    input.content,
+    "Content",
+    1,
+    CONTEXT_LIMITS.MAX_CONTEXT_SIZE
+  );
+  if (input.description) {
+    validateLength(input.description, "Description", 0, 1000);
   }
 
-  async createFromGitHub(
-    userId: string,
-    input: {
-      name: string;
-      description?: string;
-      repoUrl: string;
-      branch?: string;
-      filePaths?: string[];
-      chatId?: string;
-    }
-  ) {
-    // Basic validation
-    this.validateRequired(input.repoUrl, "Repository URL");
-    this.validateLength(input.name, "Name", 1, 255);
-    if (input.description) {
-      this.validateLength(input.description, "Description", 0, 1000);
-    }
+  const tokens = countTokens(input.content);
+  const size = input.content.length;
 
-    // For now, just store the repo info as content
-    // TODO: Implement GitHub cloning and file processing
-    const contextItem: CreateContextItemInput = {
-      name: input.name,
-      description: input.description,
-      type: "GITHUB_REPO",
-      content: JSON.stringify({
-        repoUrl: input.repoUrl,
-        branch: input.branch || "main",
-        filePaths: input.filePaths || [],
-      }),
-      size: input.repoUrl.length,
-      scope: input.chatId ? "LOCAL" : "GLOBAL",
-      chatId: input.chatId,
-    };
-
-    return await this.repository.create(userId, contextItem);
+  // Check limits
+  if (size > CONTEXT_LIMITS.MAX_CONTEXT_SIZE) {
+    throw new ValidationError(
+      `Document exceeds maximum size. Maximum: ${CONTEXT_LIMITS.MAX_CONTEXT_SIZE}`
+    );
   }
 
-  async createDocument(
-    userId: string,
-    input: {
-      name: string;
-      description?: string;
-      content: string;
-      chatId?: string;
-    }
-  ) {
-    // Validation
-    this.validateRequired(input.content, "Content");
-    this.validateLength(input.name, "Name", 1, 255);
-    this.validateLength(
+  if (tokens > CONTEXT_LIMITS.MAX_TOKEN_COUNT) {
+    throw new ValidationError(
+      `Document contains too many tokens (${tokens}). Maximum: ${CONTEXT_LIMITS.MAX_TOKEN_COUNT}`
+    );
+  }
+
+  const contextItem: CreateContextItemInput = {
+    name: input.name,
+    description: input.description,
+    type: "DOCUMENT",
+    content: input.content,
+    size,
+    scope: input.chatId ? "LOCAL" : "GLOBAL",
+    chatId: input.chatId,
+    tags: [],
+  };
+
+  return await createContextItem(userId, contextItem);
+}
+
+export async function updateContext(
+  userId: string,
+  id: string,
+  input: Partial<CreateContextItemInput>
+) {
+  const item = await findContextItemById(id, userId);
+  if (!item) {
+    throw new ContextNotFoundError("Context item not found");
+  }
+
+  // Validate content if provided
+  if (input.content) {
+    validateLength(
       input.content,
       "Content",
       1,
       CONTEXT_LIMITS.MAX_CONTEXT_SIZE
     );
-    if (input.description) {
-      this.validateLength(input.description, "Description", 0, 1000);
-    }
 
-    const tokens = this.countTokens(input.content);
-    const size = input.content.length;
-
-    // Check limits
-    if (size > CONTEXT_LIMITS.MAX_CONTEXT_SIZE) {
-      throw new ValidationError(
-        `Document exceeds maximum size. Maximum: ${CONTEXT_LIMITS.MAX_CONTEXT_SIZE}`
-      );
-    }
-
+    const tokens = countTokens(input.content);
     if (tokens > CONTEXT_LIMITS.MAX_TOKEN_COUNT) {
       throw new ValidationError(
-        `Document contains too many tokens (${tokens}). Maximum: ${CONTEXT_LIMITS.MAX_TOKEN_COUNT}`
+        `Content contains too many tokens (${tokens}). Maximum: ${CONTEXT_LIMITS.MAX_TOKEN_COUNT}`
       );
     }
-
-    const contextItem: CreateContextItemInput = {
-      name: input.name,
-      description: input.description,
-      type: "DOCUMENT",
-      content: input.content,
-      size,
-      scope: input.chatId ? "LOCAL" : "GLOBAL",
-      chatId: input.chatId,
-    };
-
-    return await this.repository.create(userId, contextItem);
   }
 
-  async update(
-    userId: string,
-    id: string,
-    input: Partial<CreateContextItemInput>
-  ) {
-    const item = await this.repository.findById(id, userId);
-    if (!item) {
-      throw new ContextNotFoundError("Context item not found");
-    }
+  return await updateContextItem(id, userId, input);
+}
 
-    // Validate content if provided
-    if (input.content) {
-      this.validateLength(
-        input.content,
-        "Content",
-        1,
-        CONTEXT_LIMITS.MAX_CONTEXT_SIZE
-      );
-
-      const tokens = this.countTokens(input.content);
-      if (tokens > CONTEXT_LIMITS.MAX_TOKEN_COUNT) {
-        throw new ValidationError(
-          `Content contains too many tokens (${tokens}). Maximum: ${CONTEXT_LIMITS.MAX_TOKEN_COUNT}`
-        );
-      }
-    }
-
-    return await this.repository.update(id, userId, input);
+export async function deleteContext(userId: string, id: string) {
+  const item = await findContextItemById(id, userId);
+  if (!item) {
+    throw new ContextNotFoundError("Context item not found");
   }
 
-  async delete(userId: string, id: string) {
-    const item = await this.repository.findById(id, userId);
-    if (!item) {
-      throw new ContextNotFoundError("Context item not found");
-    }
+  await deleteContextItem(id, userId);
+}
 
-    await this.repository.delete(id, userId);
+export async function linkContext(userId: string, contextId: string, chatId: string) {
+  const item = await findContextItemById(contextId, userId);
+  if (!item) {
+    throw new ContextNotFoundError("Context item not found");
   }
 
-  async linkToChat(userId: string, contextId: string, chatId: string) {
-    const item = await this.repository.findById(contextId, userId);
-    if (!item) {
-      throw new ContextNotFoundError("Context item not found");
-    }
+  // Verify chat ownership
+  const hasOwnership = await validateChatOwnership(
+    chatId,
+    userId
+  );
 
-    // Verify chat ownership
-    const hasOwnership = await this.repository.validateChatOwnership(
-      chatId,
-      userId
-    );
-
-    if (!hasOwnership) {
-      throw new ValidationError("Chat not found or access denied");
-    }
-
-    await this.repository.linkToChat(contextId, chatId, userId);
+  if (!hasOwnership) {
+    throw new ValidationError("Chat not found or access denied");
   }
 
-  async unlinkFromChat(userId: string, contextId: string, chatId: string) {
-    const item = await this.repository.findById(contextId, userId);
-    if (!item) {
-      throw new ContextNotFoundError("Context item not found");
-    }
+  await linkContextToChat(contextId, chatId, userId);
+}
 
-    await this.repository.unlinkFromChat(contextId, chatId, userId);
+export async function unlinkContext(userId: string, contextId: string, chatId: string) {
+  const item = await findContextItemById(contextId, userId);
+  if (!item) {
+    throw new ContextNotFoundError("Context item not found");
   }
 
-  private countTokens(text: string): number {
-    // Simple token counting - in a real implementation, use a proper tokenizer
-    return Math.ceil(text.length / 4);
-  }
+  await unlinkContextFromChat(contextId, chatId, userId);
+}
+
+function countTokens(text: string): number {
+  // Simple token counting - in a real implementation, use a proper tokenizer
+  return Math.ceil(text.length / 4);
 }

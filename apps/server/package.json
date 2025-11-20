@@ -13,6 +13,7 @@
     "@ai-sdk/anthropic": "catalog:",
     "@ai-sdk/google": "catalog:",
     "@ai-sdk/openai": "catalog:",
+    "@hono/zod-validator": "^0.7.5",
     "@memora/db": "workspace:*",
     "@openrouter/ai-sdk-provider": "^1.2.3",
     "@polar-sh/better-auth": "catalog:",

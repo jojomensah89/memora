@@ -1,72 +1,126 @@
 import { Hono } from "hono";
+import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
+import { PAGINATION_LIMITS } from "../common/constants/limits.constants";
 import type { AuthVariables } from "../types/auth.types";
-import type { AppContext } from "../types/hono.types";
+import {
+  createMessage,
+  deleteMessage,
+  getMessage,
+  getMessageStatistics,
+  getMessagesByChat,
+  updateMessage,
+} from "../modules/message/message.controller";
+import {
+  createMessageInputSchema,
+  updateMessageInputSchema,
+} from "../modules/message/message.inputs";
 
 const app = new Hono<{ Variables: AuthVariables }>();
 
-// GET /api/messages/by-chat/:chatId - Get messages for chat
-app.get("/by-chat/:chatId", async (c: AppContext) => {
-  const _authUser = c.get("authUser");
-  const { chatId } = c.req.param();
-  const _query = c.req.query();
-
-  // TODO: Implement actual message retrieval logic
-  return c.json({
-    data: [],
-    hasMore: false,
-    total: 0,
-    message: `Get messages for chat ${chatId} - to be fully implemented`,
-  });
-});
-
-// GET /api/messages/:id - Get specific message
-app.get("/:id", async (c: AppContext) => {
-  const { id } = c.req.param();
-
-  // TODO: Implement actual message retrieval logic
-  return c.json({
-    message: `Get message ${id} - to be fully implemented`,
-  });
-});
-
-// POST /api/messages - Create message
-app.post("/", async (c: AppContext) => {
-  const body = await c.req.json();
-
-  const createMessageSchema = z.object({
-    content: z.string().min(1),
-    role: z.enum(["user", "assistant", "system"]).default("user"),
-    chatId: z.string(),
-    parentMessageId: z.string().optional(),
-  });
-
-  try {
-    const input = createMessageSchema.parse(body);
-
-    // TODO: Implement actual message creation logic
-    return c.json(
-      {
-        message: "Create message - to be fully implemented",
-        data: input,
-      },
-      201
-    );
-  } catch (error) {
-    if (error instanceof Error && error.name === "ZodError") {
-      return c.json({ error: "Validation failed", details: error }, 400);
-    }
-    return c.json({ error: "Internal server error" }, 500);
+app.post(
+  "/",
+  zValidator("json", createMessageInputSchema),
+  async (c) => {
+    const user = c.get("authUser");
+    const input = c.req.valid("json");
+    const result = await createMessage(user.id, input);
+    return c.json(result);
   }
-});
+);
 
-// DELETE /api/messages/:id - Delete message
-app.delete("/:id", async (c: AppContext) => {
-  const _authUser = c.get("authUser");
-  const { id: _id } = c.req.param();
+app.get(
+  "/chat/:chatId",
+  zValidator(
+    "param",
+    z.object({
+      chatId: z.string(),
+    })
+  ),
+  zValidator(
+    "query",
+    z.object({
+      limit: z.string().optional().transform((val) => val ? parseInt(val, 10) : PAGINATION_LIMITS.DEFAULT_LIMIT),
+      cursor: z.string().optional(),
+    })
+  ),
+  async (c) => {
+    const user = c.get("authUser");
+    const { chatId } = c.req.valid("param");
+    const { limit, cursor } = c.req.valid("query");
+    const result = await getMessagesByChat(user.id, {
+      chatId,
+      limit,
+      cursor,
+    });
+    return c.json(result);
+  }
+);
 
-  // TODO: Implement actual message deletion logic
-  return c.text("", 204);
-});
+app.get(
+  "/:id",
+  zValidator(
+    "param",
+    z.object({
+      id: z.string(),
+    })
+  ),
+  async (c) => {
+    const user = c.get("authUser");
+    const { id } = c.req.valid("param");
+    const result = await getMessage(user.id, { id });
+    return c.json(result);
+  }
+);
+
+app.put(
+  "/:id",
+  zValidator(
+    "param",
+    z.object({
+      id: z.string(),
+    })
+  ),
+  zValidator("json", updateMessageInputSchema),
+  async (c) => {
+    const user = c.get("authUser");
+    const { id } = c.req.valid("param");
+    const input = c.req.valid("json");
+    await updateMessage(user.id, id, input);
+    return c.json({ success: true });
+  }
+);
+
+app.delete(
+  "/:id",
+  zValidator(
+    "param",
+    z.object({
+      id: z.string(),
+    })
+  ),
+  async (c) => {
+    const user = c.get("authUser");
+    const { id } = c.req.valid("param");
+    await deleteMessage(user.id, { id });
+    return c.json({ success: true });
+  }
+);
+
+app.get(
+  "/stats/:chatId",
+  zValidator(
+    "param",
+    z.object({
+      chatId: z.string(),
+    })
+  ),
+  async (c) => {
+    const user = c.get("authUser");
+    const { chatId } = c.req.valid("param");
+    const result = await getMessageStatistics(user.id, chatId);
+    return c.json(result);
+  }
+);
 
 export default app;
