@@ -19,7 +19,7 @@ import {
   getModelInstance,
   getProviderFromModel,
 } from "../lib/ai/provider-factory";
-import { ChatService } from "../modules/chat/chat.service";
+import * as ChatService from "../modules/chat/chat.service";
 import type { AuthVariables } from "../types/auth.types";
 import type { AppContext } from "../types/hono.types";
 
@@ -111,19 +111,17 @@ app.post("/extreme", async (c: AppContext) => {
   const provider = getProviderFromModel(modelId);
   const modelInstance = getModelInstance(provider, modelId);
 
-  const chatService = new ChatService();
-
   const stream = createUIMessageStream({
     execute: async ({ writer }) => {
       try {
         // Check if chat exists
-        await chatService.getChatById(chatId, authUser.id);
+        await ChatService.getChatById(chatId, authUser.id);
       } catch (error) {
         // Chat doesn't exist, create it
         const initialMessage =
           messages[0]?.parts.find((p) => p.type === "text")?.text || "";
 
-        await chatService.createChat(authUser.id, {
+        await ChatService.createChat(authUser.id, {
           chatId,
           modelId,
           initialMessage,
@@ -150,7 +148,7 @@ app.post("/extreme", async (c: AppContext) => {
     onFinish: async ({ messages: updatedMessages }) => {
       try {
         // Save the updated messages to the database
-        await chatService.saveChatMessages(
+        await ChatService.saveChatMessages(
           authUser.id,
           chatId,
           updatedMessages as unknown as MyUIMessage[]
