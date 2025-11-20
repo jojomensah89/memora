@@ -46,9 +46,23 @@ export const enhancePromptInputSchema = z.object({
   contextChatId: z.string().optional(),
 });
 
+export const updateChatInputSchema = z.object({
+  title: z.string().trim().max(CHAT_LIMITS.MAX_TITLE_LENGTH).optional(),
+  modelId: z.string().min(1).optional(),
+});
+
 export type { AttachmentInput } from "../attachment/attachment.inputs";
 export type CreateChatInput = z.infer<typeof createChatInputSchema>;
 export type ForkChatInput = z.infer<typeof forkChatInputSchema>;
 export type ListChatsInput = z.infer<typeof listChatsInputSchema>;
 export type GetChatInput = z.infer<typeof getChatInputSchema>;
 export type EnhancePromptInput = z.infer<typeof enhancePromptInputSchema>;
+export type UpdateChatInput = z.infer<typeof updateChatInputSchema>;
+
+// Aliases for routes
+export const createChatSchema = createChatInputSchema;
+export const forkChatSchema = forkChatInputSchema;
+export const listChatsSchema = listChatsInputSchema;
+export const getChatSchema = getChatInputSchema;
+export const enhancePromptSchema = enhancePromptInputSchema;
+export const updateChatSchema = updateChatInputSchema;
