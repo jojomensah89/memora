@@ -4,41 +4,49 @@
  * No validation, persistence, or context/rules.
  */
 
-import { convertToModelMessages, createUIMessageStream, createUIMessageStreamResponse, streamText, tool, type UIMessage } from "ai";
+import {
+  convertToModelMessages,
+  createUIMessageStream,
+  createUIMessageStreamResponse,
+  streamText,
+  type UIMessage,
+} from "ai";
 
 import { Hono } from "hono";
+import z from "zod";
 import {
   getDefaultModel,
   getModelInstance,
   getProviderFromModel,
 } from "../lib/ai/provider-factory";
+import { ChatService } from "../modules/chat/chat.service";
 import type { AuthVariables } from "../types/auth.types";
 import type { AppContext } from "../types/hono.types";
-import z from "zod";
-
-import { ChatService } from "../modules/chat/chat.service";
 
 const app = new Hono<{ Variables: AuthVariables }>();
 
 const messageMetadataSchema = z.object({
   createdAt: z.number().optional(),
   totalTokens: z.number().optional(),
-}
-
-
-);
+});
 
 type MessageMetadata = z.infer<typeof messageMetadataSchema>;
 export type MyUIMessage = UIMessage<MessageMetadata>;
-type NewUiMessage = UIMessage<unknown,{
-  "new-chat-created":{
-    id:string
+type NewUiMessage = UIMessage<
+  unknown,
+  {
+    "new-chat-created": {
+      id: string;
+    };
   }
-}>
+>;
 
 app.post("/", async (c: AppContext) => {
   try {
-    const { messages, model}: { messages: MyUIMessage[]; model: string, webSearch: boolean } =
+    const {
+      messages,
+      model,
+    }: { messages: MyUIMessage[]; model: string; webSearch: boolean } =
       await c.req.json();
 
     const requestedModel = model;
@@ -57,33 +65,32 @@ app.post("/", async (c: AppContext) => {
       //   },google:{
       //     reasoningSummary: "auto",
       //     reasoningEffort: "low"
-      //   } 
+      //   }
       // }
     });
     return result.toUIMessageStreamResponse({
-      sendReasoning:true,
-      sendSources:true,
-      messageMetadata: ({ part})=>{
-        if(part.type === "start"){
+      sendReasoning: true,
+      sendSources: true,
+      messageMetadata: ({ part }) => {
+        if (part.type === "start") {
           return {
             createdAt: Date.now(),
           };
         }
-        if(part.type === "finish"){
+        if (part.type === "finish") {
           console.log(part.totalUsage);
           return {
             createdAt: Date.now(),
             totalTokens: part.totalUsage.totalTokens,
           };
         }
-      }
+      },
     });
   } catch (error) {
     console.error("Error streaming text:", error);
     return c.json({ error: "Internal server error" }, 500);
   }
 });
-
 
 app.post("/extreme", async (c: AppContext) => {
   const {
@@ -113,20 +120,21 @@ app.post("/extreme", async (c: AppContext) => {
         await chatService.getChatById(chatId, authUser.id);
       } catch (error) {
         // Chat doesn't exist, create it
-        const initialMessage = messages[0]?.parts.find(p => p.type === 'text')?.text || "";
-        
+        const initialMessage =
+          messages[0]?.parts.find((p) => p.type === "text")?.text || "";
+
         await chatService.createChat(authUser.id, {
           chatId,
           modelId,
           initialMessage,
-          useWebSearch:webSearch,
-          attachments:[]
+          useWebSearch: webSearch,
+          attachments: [],
         });
 
         writer.write({
           type: "data-new-chat-created",
           data: {
-             id: chatId,
+            id: chatId,
           },
         });
       }
@@ -142,13 +150,16 @@ app.post("/extreme", async (c: AppContext) => {
     onFinish: async ({ messages: updatedMessages }) => {
       try {
         // Save the updated messages to the database
-        await chatService.saveChatMessages(authUser.id, chatId, updatedMessages as unknown as MyUIMessage[]);
+        await chatService.saveChatMessages(
+          authUser.id,
+          chatId,
+          updatedMessages as unknown as MyUIMessage[]
+        );
       } catch (error) {
         console.error("Failed to save chat messages:", error);
       }
     },
   });
-
 
   return createUIMessageStreamResponse({ stream });
 });

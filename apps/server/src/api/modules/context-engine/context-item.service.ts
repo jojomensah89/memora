@@ -26,7 +26,8 @@ import type {
  * Contains business logic for context management
  */
 export class ContextItemService extends BaseService {
-  private readonly repository: ContextItemRepository = new ContextItemRepository();
+  private readonly repository: ContextItemRepository =
+    new ContextItemRepository();
 
   constructor() {
     super();

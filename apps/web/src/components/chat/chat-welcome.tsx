@@ -79,7 +79,7 @@ const ChatWelcome = () => {
             messages,
             model: currentModel,
             webSearch,
-            ...body
+            ...body,
           },
         };
       },

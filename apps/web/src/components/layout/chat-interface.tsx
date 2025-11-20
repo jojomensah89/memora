@@ -2,19 +2,22 @@
 import { useChat } from "@ai-sdk/react";
 import { useQuery } from "@tanstack/react-query";
 import { DefaultChatTransport, type UIMessage } from "ai";
+import { CopyIcon, GlobeIcon, RefreshCcwIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import z from "zod";
 import {
   Conversation,
   ConversationContent,
   ConversationScrollButton,
 } from "@/components/ai-elements/conversation";
+import { Loader } from "@/components/ai-elements/loader";
 import {
   Message,
+  MessageAction,
+  MessageActions,
   MessageContent,
   MessageResponse,
-  MessageActions,
-  MessageAction,
-} from '@/components/ai-elements/message';
+} from "@/components/ai-elements/message";
 import {
   PromptInput,
   PromptInputActionAddAttachments,
@@ -38,29 +41,27 @@ import {
   PromptInputTextarea,
   PromptInputTools,
 } from "@/components/ai-elements/prompt-input";
-import { useChat as useChatData } from "@/hooks/use-chat";
-import { fetchModels, type Model } from "@/lib/utils";
-import z from "zod";
-import { CopyIcon, GlobeIcon, RefreshCcwIcon } from 'lucide-react';
+import {
+  Reasoning,
+  ReasoningContent,
+  ReasoningTrigger,
+} from "@/components/ai-elements/reasoning";
 import {
   Source,
   Sources,
   SourcesContent,
   SourcesTrigger,
-} from '@/components/ai-elements/sources';
-import {
-  Reasoning,
-  ReasoningContent,
-  ReasoningTrigger,
-} from '@/components/ai-elements/reasoning';
-import { Loader } from '@/components/ai-elements/loader';
+} from "@/components/ai-elements/sources";
+import { useChat as useChatData } from "@/hooks/use-chat";
+import { fetchModels, type Model } from "@/lib/utils";
+
 type ChatInterfaceProps = {
   chatId: string;
 };
 
 const messageMetadataSchema = z.object({
   createdAt: z.number().optional(),
-  totalTokens:  z.number().optional(),
+  totalTokens: z.number().optional(),
 });
 
 type MessageMetadata = z.infer<typeof messageMetadataSchema>;
@@ -176,15 +177,15 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     }
   }, [defaultModel, model, models]);
 
-  const { messages, status, sendMessage, error, regenerate } = useChat<MyUIMessage>({
-    id: chatId,
-    transport: new DefaultChatTransport({
-      api: transportApi,
-      
-      credentials: "include",
-    }),
-  });
+  const { messages, status, sendMessage, error, regenerate } =
+    useChat<MyUIMessage>({
+      id: chatId,
+      transport: new DefaultChatTransport({
+        api: transportApi,
 
+        credentials: "include",
+      }),
+    });
 
   const handleSubmit = (message: PromptInputMessage) => {
     const hasText = Boolean(message.text);
@@ -202,7 +203,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       {
         body: {
           model,
-          webSearch: webSearch,
+          webSearch,
         },
       }
     );
@@ -216,88 +217,96 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
           <Conversation>
             <ConversationContent>
               {messages.map((message) => (
-                <div key={message.id} className="mb-8">
-
-  {message.role === 'assistant' && message.parts.filter((part) => part.type === 'source-url').length > 0 && (
-                  <Sources>
-                    <SourcesTrigger
-                      count={
-                        message.parts.filter(
-                          (part) => part.type === 'source-url',
-                        ).length
-                      }
-                    />
-                    {message.parts.filter((part) => part.type === 'source-url').map((part, i) => (
-                      <SourcesContent key={`${message.id}-${i}`}>
-                        <Source
-                          key={`${message.id}-${i}`}
-                          href={part.url}
-                          title={part.url}
+                <div className="mb-8" key={message.id}>
+                  {message.role === "assistant" &&
+                    message.parts.filter((part) => part.type === "source-url")
+                      .length > 0 && (
+                      <Sources>
+                        <SourcesTrigger
+                          count={
+                            message.parts.filter(
+                              (part) => part.type === "source-url"
+                            ).length
+                          }
                         />
-                      </SourcesContent>
-                    ))}
-                  </Sources>
-                )}
-                    {message.parts.map((part, i) => {
-                   switch (part.type) {
-                    case 'text':
-                      return (
-                        <Message key={`${message.id}-${i}`} from={message.role}>
-                          <MessageContent>
-                            <MessageResponse>
-                              {part.text}
-                            </MessageResponse>
-                          </MessageContent>
-                          {message.role === 'assistant' && i === messages.length - 1 && (
-                            <MessageActions>
-                              <MessageAction
-                                onClick={() => regenerate()}
-                                label="Retry"
-                              >
-                                <RefreshCcwIcon className="size-3" />
-                              </MessageAction>
-                              <MessageAction
-                                onClick={() =>
-                                  navigator.clipboard.writeText(part.text)
-                                }
-                                label="Copy"
-                              >
-                                <CopyIcon className="size-3" />
-                              </MessageAction>
-                            </MessageActions>
-                          )}
-                        </Message>
-                      );
-                    case 'reasoning':
-                      return (
-                        <Reasoning
-                          key={`${message.id}-${i}`}
-                          className="w-full"
-                          isStreaming={status === 'streaming' && i === message.parts.length - 1 && message.id === messages.at(-1)?.id}
-                        >
-                          <ReasoningTrigger />
-                          <ReasoningContent>{part.text}</ReasoningContent>
-                        </Reasoning>
-                      );
-                    default:
-                      return null;
-                  }
-                    })}
-                    {message.metadata?.totalTokens && (
-                      <div className="mt-2 text-xs text-muted-foreground">
-                        {message.metadata.totalTokens} tokens
-                      </div>
+                        {message.parts
+                          .filter((part) => part.type === "source-url")
+                          .map((part, i) => (
+                            <SourcesContent key={`${message.id}-${i}`}>
+                              <Source
+                                href={part.url}
+                                key={`${message.id}-${i}`}
+                                title={part.url}
+                              />
+                            </SourcesContent>
+                          ))}
+                      </Sources>
                     )}
-                    {message.metadata?.createdAt && (
-                      <div className="mt-2 text-xs text-muted-foreground">
-                        {new Date(message.metadata.createdAt).toLocaleString([],{
-                          hour: "2-digit",
-                          minute: "2-digit",
-                          hour12: true,
-                        })}
-                      </div>
-                    )}
-               
+                  {message.parts.map((part, i) => {
+                    switch (part.type) {
+                      case "text":
+                        return (
+                          <Message
+                            from={message.role}
+                            key={`${message.id}-${i}`}
+                          >
+                            <MessageContent>
+                              <MessageResponse>{part.text}</MessageResponse>
+                            </MessageContent>
+                            {message.role === "assistant" &&
+                              i === messages.length - 1 && (
+                                <MessageActions>
+                                  <MessageAction
+                                    label="Retry"
+                                    onClick={() => regenerate()}
+                                  >
+                                    <RefreshCcwIcon className="size-3" />
+                                  </MessageAction>
+                                  <MessageAction
+                                    label="Copy"
+                                    onClick={() =>
+                                      navigator.clipboard.writeText(part.text)
+                                    }
+                                  >
+                                    <CopyIcon className="size-3" />
+                                  </MessageAction>
+                                </MessageActions>
+                              )}
+                          </Message>
+                        );
+                      case "reasoning":
+                        return (
+                          <Reasoning
+                            className="w-full"
+                            isStreaming={
+                              status === "streaming" &&
+                              i === message.parts.length - 1 &&
+                              message.id === messages.at(-1)?.id
+                            }
+                            key={`${message.id}-${i}`}
+                          >
+                            <ReasoningTrigger />
+                            <ReasoningContent>{part.text}</ReasoningContent>
+                          </Reasoning>
+                        );
+                      default:
+                        return null;
+                    }
+                  })}
+                  {message.metadata?.totalTokens && (
+                    <div className="mt-2 text-muted-foreground text-xs">
+                      {message.metadata.totalTokens} tokens
+                    </div>
+                  )}
+                  {message.metadata?.createdAt && (
+                    <div className="mt-2 text-muted-foreground text-xs">
+                      {new Date(message.metadata.createdAt).toLocaleString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        hour12: true,
+                      })}
+                    </div>
+                  )}
                 </div>
               ))}
 
@@ -324,8 +333,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                   </MessageContent>
                 </Message>
               )}
-                          {status === 'submitted' && <Loader />}
-
+              {status === "submitted" && <Loader />}
             </ConversationContent>
             <ConversationScrollButton />
           </Conversation>
@@ -337,12 +345,11 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
             onSubmit={handleSubmit}
           >
             <PromptInputHeader>
-           <PromptInputAttachments>
+              <PromptInputAttachments>
                 {(attachment) => <PromptInputAttachment data={attachment} />}
               </PromptInputAttachments>
-          </PromptInputHeader>
+            </PromptInputHeader>
             <PromptInputBody>
-            
               <PromptInputTextarea
                 onChange={(e) => setText(e.target.value)}
                 ref={textareaRef}

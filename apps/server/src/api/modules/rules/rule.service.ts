@@ -135,7 +135,6 @@ export class RuleService extends BaseService {
     });
 
     try {
-
       const rule = await this.repository.findById(id, userId);
       if (!rule) {
         throw new RuleNotFoundError("Rule not found");

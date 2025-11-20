@@ -271,7 +271,10 @@ export class ContextItemRepository extends BaseRepository<ContextItemWithTags> {
       throw new DatabaseError("Failed to unlink context item from chat", error);
     }
   }
-  async validateChatOwnership(chatId: string, userId: string): Promise<boolean> {
+  async validateChatOwnership(
+    chatId: string,
+    userId: string
+  ): Promise<boolean> {
     try {
       const chat = await this.prisma.chat.findFirst({
         where: { id: chatId, userId },

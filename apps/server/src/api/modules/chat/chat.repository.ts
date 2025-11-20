@@ -1,4 +1,4 @@
-import type { Prisma, AttachmentKind, AIProvider, Chat } from "@memora/db";
+import type { AIProvider, AttachmentKind, Chat, Prisma } from "@memora/db";
 import type { UIMessage } from "ai";
 import { BaseRepository } from "../../common/base";
 import { AVAILABLE_MODELS } from "../../common/constants";

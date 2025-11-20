@@ -153,7 +153,7 @@ const LeftSidebar: React.FC = () => {
                           </span>
                         </SidebarMenuButton>
                         <Button
-                          className="absolute right-1 top-1/2 h-6 w-6 -translate-y-1/2 opacity-0 transition-opacity group-hover/item:opacity-100"
+                          className="-translate-y-1/2 absolute top-1/2 right-1 h-6 w-6 opacity-0 transition-opacity group-hover/item:opacity-100"
                           onClick={(e) => {
                             e.stopPropagation();
                             setChatToDelete(chat.id);
